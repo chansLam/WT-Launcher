@@ -6,4 +6,8 @@
     <string name="shortcut_nav">导航</string>
     <string name="shortcut_music">音乐</string>
     <string name="shortcut_news">新闻</string>
+    <string name="app_visible">显示</string>
+    <string name="wallpaper_daily">每日自动</string>
+    <string name="wallpaper_custom">自定义图片</string>
+    <string name="wallpaper_unusable">这张图片不能使用</string>
 </resources>
