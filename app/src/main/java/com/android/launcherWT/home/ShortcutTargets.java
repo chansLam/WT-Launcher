@@ -18,6 +18,10 @@ final class ShortcutTargets {
         this.labelRes = labelRes;
     }
 
+    String componentKey() {
+        return packageName + "/" + className;
+    }
+
     static final ShortcutTargets NAVIGATION = new ShortcutTargets(
             "com.tencent.wecarnavi",
             "com.tencent.wecarnavi.MainActivity",

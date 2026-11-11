@@ -10,6 +10,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 
+import com.android.launcherWT.store.DesktopDb;
+
 public class HotseatView extends LinearLayout {
     public HotseatView(Context context) {
         this(context, null);
@@ -21,8 +23,18 @@ public class HotseatView extends LinearLayout {
         setGravity(Gravity.CENTER_VERTICAL);
         int pad = dp(8);
         setPadding(pad, pad, pad, pad);
+    }
+
+    public void reload(DesktopDb database) {
+        removeAllViews();
+        int shown = 0;
         for (int i = 0; i < ShortcutTargets.ALL.length; i++) {
-            addView(createButton(ShortcutTargets.ALL[i]), buttonParams(i));
+            ShortcutTargets target = ShortcutTargets.ALL[i];
+            if (database.isHidden(target.componentKey())) {
+                continue;
+            }
+            addView(createButton(target), buttonParams(shown));
+            shown++;
         }
     }
 

@@ -40,6 +40,7 @@ public class DesktopSettingsActivity extends Activity {
     private DesktopDb database;
     private RadioGroup wallpaperMode;
     private ImageView preview;
+    private WallpaperMode modeAtPickerOpen;
     private boolean adjustingRadios;
 
     @Override
@@ -57,9 +58,7 @@ public class DesktopSettingsActivity extends Activity {
                 if (adjustingRadios) {
                     return;
                 }
-                if (checkedId == R.id.wallpaper_custom) {
-                    pickCustomImage();
-                } else if (checkedId == R.id.wallpaper_daily) {
+                if (checkedId == R.id.wallpaper_daily) {
                     WallpaperApplier.guard(new Runnable() {
                         @Override
                         public void run() {
@@ -71,6 +70,12 @@ public class DesktopSettingsActivity extends Activity {
                 }
             }
         });
+        findViewById(R.id.wallpaper_custom).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                pickCustomImage();
+            }
+        });
         showPreview();
     }
 
@@ -80,12 +85,12 @@ public class DesktopSettingsActivity extends Activity {
             return;
         }
         if (resultCode == RESULT_CANCELED) {
-            selectDailyRadio();
+            restoreModeAtPickerOpen();
             return;
         }
         Uri uri = data == null ? null : data.getData();
         if (resultCode != RESULT_OK || uri == null || !copyCustom(uri)) {
-            selectDailyRadio();
+            restoreModeAtPickerOpen();
             Toast.makeText(this, R.string.wallpaper_unusable, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -220,21 +225,36 @@ public class DesktopSettingsActivity extends Activity {
         adjustingRadios = false;
     }
 
-    private void selectDailyRadio() {
+    private void restoreModeAtPickerOpen() {
+        WallpaperMode mode = modeAtPickerOpen != null ? modeAtPickerOpen : database.wallpaperMode();
         adjustingRadios = true;
-        wallpaperMode.check(R.id.wallpaper_daily);
+        if (mode == WallpaperMode.CUSTOM) {
+            wallpaperMode.check(R.id.wallpaper_custom);
+        } else {
+            wallpaperMode.check(R.id.wallpaper_daily);
+        }
         adjustingRadios = false;
+        if (database.wallpaperMode() != mode) {
+            final WallpaperMode restore = mode;
+            WallpaperApplier.guard(new Runnable() {
+                @Override
+                public void run() {
+                    database.setWallpaperMode(restore);
+                }
+            });
+        }
         showPreview();
     }
 
     private void pickCustomImage() {
+        modeAtPickerOpen = database.wallpaperMode();
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("image/*");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         try {
             startActivityForResult(intent, REQUEST_CUSTOM_IMAGE);
         } catch (ActivityNotFoundException ex) {
-            selectDailyRadio();
+            restoreModeAtPickerOpen();
             Toast.makeText(this, R.string.wallpaper_unusable, Toast.LENGTH_SHORT).show();
         }
     }

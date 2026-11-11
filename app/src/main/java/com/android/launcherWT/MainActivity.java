@@ -25,6 +25,7 @@ import com.android.launcherWT.core.LaunchableApp;
 import com.android.launcherWT.core.WallpaperMode;
 import com.android.launcherWT.home.AppGridView;
 import com.android.launcherWT.home.CardPageView;
+import com.android.launcherWT.home.HotseatView;
 import com.android.launcherWT.home.InstalledApps;
 import com.android.launcherWT.home.PageFlipper;
 import com.android.launcherWT.store.DesktopDb;
@@ -69,6 +70,7 @@ public class MainActivity extends Activity {
     private DesktopDb database;
     private PageFlipper pages;
     private CardPageView cardPage;
+    private HotseatView hotseat;
     private LinearLayout dots;
     private TextView clock;
     private boolean timeChangesRegistered;
@@ -82,6 +84,7 @@ public class MainActivity extends Activity {
 
         database = new DesktopDb(this);
         pages = (PageFlipper) findViewById(R.id.pages);
+        hotseat = (HotseatView) findViewById(R.id.hotseat);
         dots = (LinearLayout) findViewById(R.id.page_dots);
         clock = (TextView) findViewById(R.id.clock);
         cardPage = new CardPageView(this);
@@ -124,6 +127,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         reloadApps();
+        hotseat.reload(database);
     }
 
     @Override

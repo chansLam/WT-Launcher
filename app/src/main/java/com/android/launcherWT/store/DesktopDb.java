@@ -25,18 +25,11 @@ public class DesktopDb extends DesktopState {
 
     @Override
     public boolean isHidden(String key) {
-        Cursor cursor = open().query(
-                "hidden",
-                new String[] {"component_key"},
-                "component_key=?",
-                new String[] {key},
-                null,
-                null,
-                null);
         try {
-            return cursor.moveToFirst();
-        } finally {
-            cursor.close();
+            return queryHidden(open(), key);
+        } catch (SQLiteException first) {
+            rebuild();
+            return queryHidden(helper.getWritableDatabase(), key);
         }
     }
 
@@ -85,19 +78,48 @@ public class DesktopDb extends DesktopState {
         writeWallpaper(row.mode, row.customPath, date);
     }
 
+    private boolean queryHidden(SQLiteDatabase db, String key) {
+        Cursor cursor = db.query(
+                "hidden",
+                new String[] {"component_key"},
+                "component_key=?",
+                new String[] {key},
+                null,
+                null,
+                null);
+        try {
+            return cursor.moveToFirst();
+        } finally {
+            cursor.close();
+        }
+    }
+
     private SQLiteDatabase open() {
         try {
             return helper.getWritableDatabase();
         } catch (SQLiteException first) {
-            helper.close();
-            context.deleteDatabase(NAME);
+            rebuild();
             return helper.getWritableDatabase();
         }
     }
 
+    private void rebuild() {
+        helper.close();
+        context.deleteDatabase(NAME);
+    }
+
     private WallpaperRow readWallpaper() {
+        try {
+            return queryWallpaper(open());
+        } catch (SQLiteException first) {
+            rebuild();
+            return queryWallpaper(helper.getWritableDatabase());
+        }
+    }
+
+    private WallpaperRow queryWallpaper(SQLiteDatabase db) {
         WallpaperRow row = new WallpaperRow();
-        Cursor cursor = open().query(
+        Cursor cursor = db.query(
                 "wallpaper",
                 new String[] {"mode", "custom_path", "daily_startdate"},
                 "id=?",
@@ -111,7 +133,11 @@ public class DesktopDb extends DesktopState {
             }
             String mode = cursor.getString(0);
             if (mode != null) {
-                row.mode = WallpaperMode.valueOf(mode);
+                try {
+                    row.mode = WallpaperMode.valueOf(mode);
+                } catch (RuntimeException invalid) {
+                    row.mode = WallpaperMode.DAILY;
+                }
             }
             row.customPath = cursor.getString(1);
             row.dailyStartdate = cursor.getString(2);
