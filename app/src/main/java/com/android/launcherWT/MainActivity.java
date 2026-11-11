@@ -1,7 +1,10 @@
 package com.android.launcherWT;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
@@ -18,12 +21,15 @@ import android.widget.TextView;
 
 import com.android.launcherWT.core.DesktopCatalog;
 import com.android.launcherWT.core.LaunchableApp;
+import com.android.launcherWT.core.WallpaperMode;
 import com.android.launcherWT.home.AppGridView;
 import com.android.launcherWT.home.CardPageView;
 import com.android.launcherWT.home.InstalledApps;
 import com.android.launcherWT.home.PageFlipper;
 import com.android.launcherWT.store.DesktopDb;
+import com.android.launcherWT.wallpaper.WallpaperApplier;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -45,11 +51,26 @@ public class MainActivity extends Activity {
         }
     };
 
+    private final BroadcastReceiver timeChanges = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent == null) {
+                return;
+            }
+            String action = intent.getAction();
+            if (Intent.ACTION_DATE_CHANGED.equals(action)
+                    || Intent.ACTION_TIME_CHANGED.equals(action)) {
+                refreshDailyWallpaper();
+            }
+        }
+    };
+
     private DesktopDb database;
     private PageFlipper pages;
     private CardPageView cardPage;
     private LinearLayout dots;
     private TextView clock;
+    private boolean timeChangesRegistered;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,6 +115,8 @@ public class MainActivity extends Activity {
         cardPage.startListening();
         clockHandler.removeCallbacks(clockTick);
         clockTick.run();
+        registerTimeChanges();
+        applySelectedWallpaper();
     }
 
     @Override
@@ -104,6 +127,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onStop() {
+        unregisterTimeChanges();
         clockHandler.removeCallbacks(clockTick);
         cardPage.stopListening();
         super.onStop();
@@ -210,6 +234,64 @@ public class MainActivity extends Activity {
 
     private void updateClock() {
         clock.setText(clockFormat.format(new Date()));
+    }
+
+    private void registerTimeChanges() {
+        if (timeChangesRegistered) {
+            return;
+        }
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_DATE_CHANGED);
+        filter.addAction(Intent.ACTION_TIME_CHANGED);
+        registerReceiver(timeChanges, filter);
+        timeChangesRegistered = true;
+    }
+
+    private void unregisterTimeChanges() {
+        if (!timeChangesRegistered) {
+            return;
+        }
+        unregisterReceiver(timeChanges);
+        timeChangesRegistered = false;
+    }
+
+    private void applySelectedWallpaper() {
+        if (database.wallpaperMode() == WallpaperMode.CUSTOM) {
+            applyCustomWallpaper();
+            return;
+        }
+        refreshDailyWallpaper();
+    }
+
+    private void applyCustomWallpaper() {
+        final File file = new File(getFilesDir(), "wallpaper/custom.jpg");
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                WallpaperApplier.guard(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (database.wallpaperMode() != WallpaperMode.CUSTOM) {
+                            return;
+                        }
+                        try {
+                            WallpaperApplier.apply(MainActivity.this, file);
+                        } catch (Exception ex) {
+                        } catch (OutOfMemoryError error) {
+                        }
+                    }
+                });
+            }
+        }, "custom-wallpaper").start();
+    }
+
+    private void refreshDailyWallpaper() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                WallpaperApplier.refreshHome(MainActivity.this, database);
+            }
+        }, "daily-wallpaper").start();
     }
 
     private Animation slide(float from, float to) {

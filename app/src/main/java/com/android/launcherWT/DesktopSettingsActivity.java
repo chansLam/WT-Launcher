@@ -24,6 +24,7 @@ import com.android.launcherWT.core.LaunchableApp;
 import com.android.launcherWT.core.WallpaperMode;
 import com.android.launcherWT.home.InstalledApps;
 import com.android.launcherWT.store.DesktopDb;
+import com.android.launcherWT.wallpaper.WallpaperApplier;
 
 import java.io.Closeable;
 import java.io.File;
@@ -58,8 +59,14 @@ public class DesktopSettingsActivity extends Activity {
                 if (checkedId == R.id.wallpaper_custom) {
                     pickCustomImage();
                 } else if (checkedId == R.id.wallpaper_daily) {
-                    database.setWallpaperMode(WallpaperMode.DAILY);
+                    WallpaperApplier.guard(new Runnable() {
+                        @Override
+                        public void run() {
+                            database.setWallpaperMode(WallpaperMode.DAILY);
+                        }
+                    });
                     showPreview();
+                    refreshDailyWallpaper();
                 }
             }
         });
@@ -81,13 +88,19 @@ public class DesktopSettingsActivity extends Activity {
             Toast.makeText(this, R.string.wallpaper_unusable, Toast.LENGTH_SHORT).show();
             return;
         }
-        File saved = customFile();
-        database.setCustomPath(saved.getAbsolutePath());
-        database.setWallpaperMode(WallpaperMode.CUSTOM);
+        final File saved = customFile();
+        WallpaperApplier.guard(new Runnable() {
+            @Override
+            public void run() {
+                database.setCustomPath(saved.getAbsolutePath());
+                database.setWallpaperMode(WallpaperMode.CUSTOM);
+            }
+        });
         adjustingRadios = true;
         wallpaperMode.check(R.id.wallpaper_custom);
         adjustingRadios = false;
         showPreview();
+        applySavedCustom(saved);
     }
 
     private void bindApps() {
@@ -137,6 +150,49 @@ public class DesktopSettingsActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
         return row;
+    }
+
+    private void refreshDailyWallpaper() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final boolean applied = WallpaperApplier.refreshSettings(
+                        DesktopSettingsActivity.this, database);
+                if (!applied) {
+                    return;
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isFinishing()) {
+                            return;
+                        }
+                        showPreview();
+                    }
+                });
+            }
+        }, "daily-wallpaper").start();
+    }
+
+    private void applySavedCustom(final File file) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                WallpaperApplier.guard(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (database.wallpaperMode() != WallpaperMode.CUSTOM) {
+                            return;
+                        }
+                        try {
+                            WallpaperApplier.apply(DesktopSettingsActivity.this, file);
+                        } catch (Exception ex) {
+                        } catch (OutOfMemoryError error) {
+                        }
+                    }
+                });
+            }
+        }, "custom-wallpaper").start();
     }
 
     private void selectStoredMode() {
