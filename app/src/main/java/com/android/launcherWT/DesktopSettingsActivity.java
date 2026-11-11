@@ -197,11 +197,16 @@ public class DesktopSettingsActivity extends Activity {
         }
         File temp = new File(dir, "custom.jpg.tmp");
         File dest = customFile();
+        File backup = new File(dir, "custom.jpg.bak");
         if (!writeTemp(uri, temp)) {
             temp.delete();
             return false;
         }
-        File backup = new File(dir, "custom.jpg.bak");
+        if (!readableBitmap(temp)) {
+            temp.delete();
+            restoreCustom(dest, backup);
+            return false;
+        }
         if (backup.exists() && !backup.delete()) {
             temp.delete();
             return false;
@@ -211,9 +216,7 @@ public class DesktopSettingsActivity extends Activity {
             return false;
         }
         if (!temp.renameTo(dest)) {
-            if (backup.exists()) {
-                backup.renameTo(dest);
-            }
+            restoreCustom(dest, backup);
             temp.delete();
             return false;
         }
@@ -221,6 +224,29 @@ public class DesktopSettingsActivity extends Activity {
             backup.delete();
         }
         return dest.isFile() && dest.length() > 0L;
+    }
+
+    private boolean readableBitmap(File file) {
+        Bitmap bitmap = null;
+        try {
+            bitmap = decodePreview(file);
+            return bitmap != null;
+        } catch (Exception ex) {
+            return false;
+        } catch (OutOfMemoryError error) {
+            return false;
+        } finally {
+            if (bitmap != null) {
+                bitmap.recycle();
+            }
+        }
+    }
+
+    private void restoreCustom(File dest, File backup) {
+        if (!backup.exists() || dest.exists()) {
+            return;
+        }
+        backup.renameTo(dest);
     }
 
     private boolean writeTemp(Uri uri, File temp) {
