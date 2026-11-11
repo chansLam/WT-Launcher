@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">LauncherWT</string>
+    <string name="desktop_settings">桌面设置</string>
+    <string name="app_open_failed">应用打不开</string>
+    <string name="shortcut_nav">导航</string>
+    <string name="shortcut_music">音乐</string>
+    <string name="shortcut_news">新闻</string>
 </resources>

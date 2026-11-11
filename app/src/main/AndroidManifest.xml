@@ -20,6 +20,7 @@
             android:exported="true"
             android:launchMode="singleInstance"
             android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.DeviceDefault.Wallpaper.NoTitleBar"
             android:stateNotNeeded="true"
             android:clearTaskOnLaunch="true">
             <intent-filter android:priority="1">
@@ -29,5 +30,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".DesktopSettingsActivity"
+            android:exported="false"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Holo.NoActionBar" />
     </application>
 </manifest>
