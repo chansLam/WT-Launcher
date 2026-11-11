@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.DisplayMetrics;
 import android.widget.Toast;
 
 import com.android.launcherWT.core.BingDailyImage;
@@ -72,14 +73,9 @@ public final class WallpaperApplier {
                 if (image == null) {
                     deleteQuietly(temp);
                     if (!applyCached) {
-                        notifyNotUpdated(context);
                         return false;
                     }
-                    if (!applyCachedDaily(context)) {
-                        return false;
-                    }
-                    notifyNotUpdated(context);
-                    return true;
+                    return applyCachedDaily(context);
                 }
                 boolean stillDownload = WallpaperRules.shouldDownload(
                         database.wallpaperMode(), database.dailyStartdate(), image.startdate);
@@ -99,13 +95,16 @@ public final class WallpaperApplier {
                 try {
                     setBitmap(context, dest);
                 } catch (Exception ex) {
+                    restoreBackup(dest);
                     notifyNotUpdated(context);
                     return false;
                 } catch (OutOfMemoryError error) {
+                    restoreBackup(dest);
                     notifyNotUpdated(context);
                     return false;
                 }
-                if (image != null && database.wallpaperMode() == WallpaperMode.DAILY) {
+                deleteBackup(dest);
+                if (database.wallpaperMode() == WallpaperMode.DAILY) {
                     database.setDailyStartdate(image.startdate);
                 }
                 return true;
@@ -130,7 +129,14 @@ public final class WallpaperApplier {
         if (file == null || !file.isFile() || file.length() <= 0L) {
             throw new IOException("missing wallpaper");
         }
-        Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(file.getAbsolutePath(), bounds);
+        DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inSampleSize = sampleSize(
+                bounds.outWidth, bounds.outHeight, metrics.widthPixels, metrics.heightPixels);
+        Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath(), options);
         if (bitmap == null) {
             throw new IOException("undecodable wallpaper");
         }
@@ -170,10 +176,50 @@ public final class WallpaperApplier {
             }
             return false;
         }
-        if (backup.exists()) {
-            backup.delete();
-        }
         return true;
+    }
+
+    private static void deleteBackup(File dest) {
+        File dir = dest.getParentFile();
+        if (dir == null) {
+            return;
+        }
+        deleteQuietly(new File(dir, "daily.jpg.bak"));
+    }
+
+    private static void restoreBackup(File dest) {
+        File dir = dest.getParentFile();
+        if (dir == null) {
+            return;
+        }
+        File backup = new File(dir, "daily.jpg.bak");
+        if (!backup.exists()) {
+            return;
+        }
+        File failed = new File(dir, "daily.jpg.failed");
+        deleteQuietly(failed);
+        if (dest.exists() && !dest.renameTo(failed)) {
+            return;
+        }
+        if (!backup.renameTo(dest)) {
+            if (!dest.exists()) {
+                failed.renameTo(dest);
+            }
+            return;
+        }
+        deleteQuietly(failed);
+    }
+
+    private static int sampleSize(int width, int height, int targetWidth, int targetHeight) {
+        int sample = 1;
+        if (width <= 0 || height <= 0 || targetWidth <= 0 || targetHeight <= 0) {
+            return sample;
+        }
+        while (sample <= Integer.MAX_VALUE / 2
+                && (width > (long) targetWidth * sample || height > (long) targetHeight * sample)) {
+            sample *= 2;
+        }
+        return sample;
     }
 
     private static File wallpaperDir(Context context) {

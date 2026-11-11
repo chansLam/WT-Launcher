@@ -18,6 +18,7 @@ import android.view.animation.TranslateAnimation;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.launcherWT.core.DesktopCatalog;
 import com.android.launcherWT.core.LaunchableApp;
@@ -277,12 +278,26 @@ public class MainActivity extends Activity {
                         try {
                             WallpaperApplier.apply(MainActivity.this, file);
                         } catch (Exception ex) {
+                            toastUnusable();
                         } catch (OutOfMemoryError error) {
+                            toastUnusable();
                         }
                     }
                 });
             }
         }, "custom-wallpaper").start();
+    }
+
+    private void toastUnusable() {
+        final Context host = getApplicationContext() == null
+                ? MainActivity.this
+                : getApplicationContext();
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(host, R.string.wallpaper_unusable, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void refreshDailyWallpaper() {

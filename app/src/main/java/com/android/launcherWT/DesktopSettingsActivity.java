@@ -2,6 +2,7 @@ package com.android.launcherWT;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -187,12 +188,26 @@ public class DesktopSettingsActivity extends Activity {
                         try {
                             WallpaperApplier.apply(DesktopSettingsActivity.this, file);
                         } catch (Exception ex) {
+                            toastUnusable();
                         } catch (OutOfMemoryError error) {
+                            toastUnusable();
                         }
                     }
                 });
             }
         }, "custom-wallpaper").start();
+    }
+
+    private void toastUnusable() {
+        final Context host = getApplicationContext() == null
+                ? DesktopSettingsActivity.this
+                : getApplicationContext();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(host, R.string.wallpaper_unusable, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void selectStoredMode() {
