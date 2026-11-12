@@ -10,9 +10,12 @@ import android.database.sqlite.SQLiteOpenHelper;
 import com.android.launcherWT.core.DesktopState;
 import com.android.launcherWT.core.WallpaperMode;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class DesktopDb extends DesktopState {
     static final String NAME = "desktop.db";
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
     private static final int WALLPAPER_ID = 1;
 
     private final Context context;
@@ -35,13 +38,31 @@ public class DesktopDb extends DesktopState {
 
     @Override
     public void setHidden(String key, boolean hidden) {
-        SQLiteDatabase db = open();
-        if (hidden) {
-            ContentValues values = new ContentValues();
-            values.put("component_key", key);
-            db.insertWithOnConflict("hidden", null, values, SQLiteDatabase.CONFLICT_REPLACE);
-        } else {
-            db.delete("hidden", "component_key=?", new String[] {key});
+        try {
+            writeHidden(open(), key, hidden);
+        } catch (SQLiteException first) {
+            rebuild();
+            writeHidden(helper.getWritableDatabase(), key, hidden);
+        }
+    }
+
+    @Override
+    public List<String> displayOrder() {
+        try {
+            return queryOrder(open());
+        } catch (SQLiteException first) {
+            rebuild();
+            return queryOrder(helper.getWritableDatabase());
+        }
+    }
+
+    @Override
+    public void setDisplayOrder(List<String> keys) {
+        try {
+            writeOrder(open(), keys);
+        } catch (SQLiteException first) {
+            rebuild();
+            writeOrder(helper.getWritableDatabase(), keys);
         }
     }
 
@@ -76,6 +97,59 @@ public class DesktopDb extends DesktopState {
     public void setDailyStartdate(String date) {
         WallpaperRow row = readWallpaper();
         writeWallpaper(row.mode, row.customPath, date);
+    }
+
+    private void writeHidden(SQLiteDatabase db, String key, boolean hidden) {
+        if (hidden) {
+            ContentValues values = new ContentValues();
+            values.put("component_key", key);
+            db.insertWithOnConflict("hidden", null, values, SQLiteDatabase.CONFLICT_REPLACE);
+            db.delete("app_order", "component_key=?", new String[] {key});
+        } else {
+            db.delete("hidden", "component_key=?", new String[] {key});
+        }
+    }
+
+    private List<String> queryOrder(SQLiteDatabase db) {
+        List<String> keys = new ArrayList<String>();
+        Cursor cursor = db.query(
+                "app_order",
+                new String[] {"component_key"},
+                null,
+                null,
+                null,
+                null,
+                "position ASC");
+        try {
+            while (cursor.moveToNext()) {
+                keys.add(cursor.getString(0));
+            }
+            return keys;
+        } finally {
+            cursor.close();
+        }
+    }
+
+    private void writeOrder(SQLiteDatabase db, List<String> keys) {
+        db.beginTransaction();
+        try {
+            db.delete("app_order", null, null);
+            if (keys != null) {
+                for (int i = 0; i < keys.size(); i++) {
+                    String key = keys.get(i);
+                    if (key == null) {
+                        continue;
+                    }
+                    ContentValues values = new ContentValues();
+                    values.put("component_key", key);
+                    values.put("position", i);
+                    db.insertWithOnConflict("app_order", null, values, SQLiteDatabase.CONFLICT_REPLACE);
+                }
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
     }
 
     private boolean queryHidden(SQLiteDatabase db, String key) {
@@ -172,10 +246,16 @@ public class DesktopDb extends DesktopState {
             db.execSQL("CREATE TABLE hidden(component_key TEXT PRIMARY KEY)");
             db.execSQL(
                     "CREATE TABLE wallpaper(id INTEGER PRIMARY KEY, mode TEXT, custom_path TEXT, daily_startdate TEXT)");
+            db.execSQL(
+                    "CREATE TABLE app_order(component_key TEXT PRIMARY KEY, position INTEGER NOT NULL)");
         }
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+            if (oldVersion < 2) {
+                db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS app_order(component_key TEXT PRIMARY KEY, position INTEGER NOT NULL)");
+            }
         }
     }
 }

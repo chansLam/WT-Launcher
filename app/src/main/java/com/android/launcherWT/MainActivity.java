@@ -162,7 +162,15 @@ public class MainActivity extends Activity {
                 hidden.add(app.key());
             }
         }
-        List<LaunchableApp> visible = DesktopCatalog.visible(installedApps, hidden);
+        List<String> savedOrder = database.displayOrder();
+        List<LaunchableApp> visible = DesktopCatalog.visible(installedApps, hidden, savedOrder);
+        List<String> nextOrder = new ArrayList<String>();
+        for (int i = 0; i < visible.size(); i++) {
+            nextOrder.add(visible.get(i).key());
+        }
+        if (!nextOrder.equals(savedOrder)) {
+            database.setDisplayOrder(nextOrder);
+        }
         if (visible.isEmpty()) {
             pages.addView(gridFor(new ArrayList<LaunchableApp>(), installed));
         } else {

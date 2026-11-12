@@ -2,6 +2,8 @@ package com.android.launcherWT.core;
 
 import org.junit.Test;
 
+import java.util.Arrays;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -23,5 +25,19 @@ public class DesktopStateTest {
 
         state.setWallpaperMode(WallpaperMode.CUSTOM);
         assertEquals(WallpaperMode.CUSTOM, state.wallpaperMode());
+    }
+
+    @Test
+    public void hidingDropsSavedOrderSoTheAppCanReturnAtTheEnd() {
+        DesktopState state = DesktopState.memory();
+        String kept = "com.example/com.example.Kept";
+        String hidden = "com.example/com.example.Hidden";
+        state.setDisplayOrder(Arrays.asList(kept, hidden));
+
+        state.setHidden(hidden, true);
+
+        assertEquals(Arrays.asList(kept), state.displayOrder());
+        state.setHidden(hidden, false);
+        assertEquals(Arrays.asList(kept), state.displayOrder());
     }
 }
