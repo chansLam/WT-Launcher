@@ -259,3 +259,17 @@ git commit -m "feat: show vehicle status only when the service is up"
 - 背景区新增「分类推荐」一栏，七个分类芯片：热门 / 风景 / 城市 / 夜景 / 动漫 / 汽车 / 抽象；点一下即换一批，选中的芯片高亮加粗。
 - 每个分类是三源合并：Wallhaven（`categories=100/010` 分类位掩码 + 关键词 + `sorting=toplist&topRange=1M`、`atleast=1920x720`、`ratios=16x9,21x9`）、Bing 图片搜索（宽图 + 大图过滤的关键词）、UPX8 JSON（关键词）。三家交替出图，避免单一站点刷屏。
 - 推荐缩略图按 16:9 展示（116×66dp），点任意一张即下载原图、落到本地模式并立刻在左侧桌面预览里生效；分类拉取带代号守卫，快速连点不会串图。
+
+## 背景 Tab 重排与推荐扩容（commit 1176a06）
+
+- 推荐源：每个分类带 4 个中文关键词，逐个拉 UPX8（count=9），再与 Bing / Wallhaven
+  结果交错合并，上限 28；`parseUpx8(json,max)` 解析 `resolution` 并丢弃小于 1280×720 的图。
+  vm 网络下 Bing 恒 302、Wallhaven 恒 000，实际靠 UPX8 供图。
+- 布局：放弃「左预览 + 右竖列」，改为整幅竖向紧凑流——
+  标题 → 控件行（列/行/图标滑杆）→ 预览（weight 1）→ caption → 背景横条
+  （四模式胶囊 + 内联「自定义图片」/「每日源」下拉）→ 按需展开的三个小块 → 分类推荐头 → 推荐横滚。
+- 预览：按真实桌面绘制，`padLeft/Right=80*sx`、`padTop=64*sy`、`padBottom=84*sy`，
+  底部叠放 `preview_dots` 分页短条（22dp×4dp 圆角，当前页亮），页数按可见项/格数计算。
+- 文字：`labelPx=max(18, 28*sy)`、预留 `labelBox=1.5×labelPx`，避免预览格内文字被裁切。
+- 模式胶囊：选中态给 `0x33FFFFFF` 底色 + 白色加粗文字（`styleModeRadios()`）。
+- 验收：emulator-5554 截图 `lay-6.png` — 推荐 13+ 张横滚、背景一条化、预览 5×4 真实栅格 + 两条分页短条。
