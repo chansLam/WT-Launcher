@@ -310,3 +310,15 @@ git commit -m "feat: show vehicle status only when the service is up"
 - 验收（emulator-5554）：`dragmode-1/2.png` 见下拉两项；切到「交换」后把 Clock(0) 竖直拖到 Gestures(10) → `dragmode-11.png` 显示两者互换、其余 13 项位置不变；
   「插入」模式同手势则是整段顺移（`ghost-n3.png`）。
 - 坑：设置页 Spinner 下拉是 PopupWindow，选完会吞掉紧接着的一次点击，需要分两轮 tap；`settings_back` 真实 bounds `[20,604][216,652]`，中心 (118,628)，点到 662 会落在按钮下方无效。
+
+## 壁纸网络层（对齐 75Play）
+
+Android 4.4 车机自带 2010 年 OpenSSL（TLS1.2 默认关、少 SNI）+ 2013 年系统根证书，现网大量壁纸站点因此握手失败；75Play 在同一台机器上可用，差距只在网络栈。本轮把 75Play 的栈整体搬过来：
+
+- `WallpaperHttp`：okhttp 3.12.13 + conscrypt 2.5.2（BoringSSL，TLS1.2 默认可用），复合 TrustManager = 系统根 ∪ `res/raw/update_ca_bundle.pem`（150 张现代根），IPv4 优先 DNS，强制 HTTP/1.1，UA `LauncherWT/<ver> (wallpaper)`，12s/20s 超时，单响应 12MB 上限。
+- 所有请求（日更、搜索、推荐、下载）只走 `WallpaperHttp`，`BingClient` 退化为站点常量 + 一次重试。
+- 端点对齐 75Play：Bing 图片搜索 `cn.bing.com/images/async`、UPX8 带 `count=10&resolution=1920x1080`、Wallhaven `atleast=1920x720`。
+- 每日兜底链：Peapix → VSAA → 必应(zh/en) → 语幕 → 站酷 → UPX8 → TodayBing → Wallhaven，每源单独日志 `WallpaperDaily: <source> ok|fail`。
+- 设置页背景 Tab 右上角「网络自检」：6s 超时逐站探测（必应 www/cn、VSAA、UPX8、语幕、TodayBing、站酷、Peapix、Wallhaven）并弹窗列出结果。
+
+验收（AVD emulator-5554, API19 x86）：九个站点全部 `200`，含此前在本机网络里连不通的 Peapix 与 Wallhaven；进程无 FATAL。
