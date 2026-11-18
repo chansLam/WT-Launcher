@@ -21,6 +21,14 @@ android {
         release {
             minifyEnabled false
         }
+        // Emulator build: installs next to the car package so it can be tried on an AVD.
+        avd {
+            initWith debug
+            applicationIdSuffix ".avd"
+            versionNameSuffix "-avd"
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ["debug"]
+        }
     }
 
     lint {

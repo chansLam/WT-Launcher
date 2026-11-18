@@ -72,7 +72,11 @@ public final class StatusCluster {
 
         // The original pins the top bar to daylight (TopRightView.setThemeType(1)),
         // so day_ resources are used whatever the system night mode is.
-        ResourceUtils.getInstance(this.context).setCurTheme(1);
+        try {
+            ResourceUtils.getInstance(this.context).setCurTheme(1);
+        } catch (Throwable error) {
+            Log.i(TAG, "status theme unavailable: " + error);
+        }
 
         root = new LinearLayout(ctx);
         root.setOrientation(LinearLayout.HORIZONTAL);
