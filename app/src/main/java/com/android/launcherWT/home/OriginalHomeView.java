@@ -87,11 +87,20 @@ public class OriginalHomeView extends FrameLayout {
     private int pressedIndex = -1;
     private int draggedIndex = -1;
     private int dragTarget = -1;
-    private View dragGhost;
+
     private float grabDx;
     private float grabDy;
     private boolean itemDrag;
     private final Paint slotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint ghostTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private Drawable ghostIcon;
+    private String ghostLabel;
+    private int ghostIconWidth;
+    private int ghostIconHeight;
+    private int ghostCellWidth;
+    private float ghostTextSize;
+    private float ghostX;
+    private float ghostY;
     private final Runnable dragArm = new Runnable() {
         @Override
         public void run() {
@@ -525,59 +534,30 @@ public class OriginalHomeView extends FrameLayout {
         cell.setAlpha(0.22f);
         // Lift a copy of the icon and let it follow the finger; the original slot is left
         // as a dimmed placeholder until the finger is released.
-        dragGhost = buildGhost(draggedIndex);
-        int ghostWidth = Math.max(1, cell.getWidth());
-        int ghostHeight = Math.max(1, cell.getHeight());
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ghostWidth, ghostHeight);
-        addView(dragGhost, params);
+        View iconView = icons.get(draggedIndex);
+        ghostIcon = ((ImageView) iconView).getDrawable();
+        ghostIconWidth = Math.max(1, iconView.getWidth());
+        ghostIconHeight = Math.max(1, iconView.getHeight());
+        ghostCellWidth = Math.max(1, cell.getWidth());
+        ghostLabel = labels.get(draggedIndex).getText().toString();
+        ghostTextSize = labels.get(draggedIndex).getTextSize();
+        ghostTextPaint.setTextSize(ghostTextSize);
+        ghostTextPaint.setColor(Color.WHITE);
+        ghostTextPaint.setTypeface(Typeface.create("sans-serif-condensed", Typeface.NORMAL));
+        ghostTextPaint.setTextAlign(Paint.Align.CENTER);
         float cellLeft = cell.getLeft() + board.getTranslationX();
         float cellTop = cell.getTop();
         grabDx = downX - cellLeft;
         grabDy = downY - cellTop;
-        dragGhost.setX(cellLeft);
-        dragGhost.setY(cellTop);
-        dragGhost.setScaleX(1.1f);
-        dragGhost.setScaleY(1.1f);
+        ghostX = cellLeft;
+        ghostY = cellTop;
         invalidate();
     }
 
-    private View buildGhost(int index) {
-        Context context = getContext();
-        LinearLayout ghost = new LinearLayout(context);
-        ghost.setOrientation(LinearLayout.VERTICAL);
-        ghost.setGravity(Gravity.CENTER);
-        ImageView image = new ImageView(context);
-        image.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        View source = icons.get(index);
-        image.setImageDrawable(((ImageView) source).getDrawable());
-        LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(
-                source.getLayoutParams().width, source.getLayoutParams().height);
-        imageParams.gravity = Gravity.CENTER_HORIZONTAL;
-        image.setLayoutParams(imageParams);
-        ghost.addView(image);
-        TextView label = labels.get(index);
-        TextView copy = new TextView(context);
-        copy.setText(label.getText());
-        copy.setTextColor(Color.WHITE);
-        copy.setGravity(Gravity.CENTER_HORIZONTAL);
-        copy.setSingleLine(true);
-        copy.setEllipsize(TextUtils.TruncateAt.MARQUEE);
-        copy.setTypeface(Typeface.create("sans-serif-condensed", Typeface.NORMAL));
-        copy.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, label.getTextSize());
-        LinearLayout.LayoutParams copyParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        copyParams.gravity = Gravity.CENTER_HORIZONTAL;
-        copyParams.topMargin = Math.round(8f * (getHeight() / (float) DESIGN_H));
-        copy.setLayoutParams(copyParams);
-        ghost.addView(copy);
-        return ghost;
-    }
-
     private void trackDrag(float x, float y) {
-        if (dragGhost != null) {
-            dragGhost.setX(x - grabDx);
-            dragGhost.setY(y - grabDy);
-        }
+        ghostX = x - grabDx;
+        ghostY = y - grabDy;
+        invalidate();
         int target = cellIndexAt(x, y);
         if (target < 0) {
             return;
@@ -597,10 +577,8 @@ public class OriginalHomeView extends FrameLayout {
     private void endItemDrag() {
         int from = draggedIndex;
         int to = dragTarget;
-        if (dragGhost != null) {
-            removeView(dragGhost);
-            dragGhost = null;
-        }
+        ghostIcon = null;
+        ghostLabel = null;
         if (from >= 0 && from < cells.size()) {
             View cell = cells.get(from);
             cell.animate().cancel();
@@ -617,10 +595,8 @@ public class OriginalHomeView extends FrameLayout {
         }
     }
 
-    @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
-        if (itemDrag && dragTarget >= 0 && dragTarget < cells.size()) {
+    private void drawDragOverlay(Canvas canvas) {
+        if (dragTarget >= 0 && dragTarget < cells.size()) {
             View cell = cells.get(dragTarget);
             float left = cell.getLeft() + board.getTranslationX();
             float top = cell.getTop();
@@ -634,6 +610,22 @@ public class OriginalHomeView extends FrameLayout {
             slotPaint.setColor(0x66FFFFFF);
             canvas.drawRect(left + 4, top + 4, left + cell.getWidth() - 4,
                     top + cell.getHeight() - 4, slotPaint);
+        }
+        if (ghostIcon != null) {
+            int save = canvas.save();
+            float cx = ghostX + ghostCellWidth / 2f;
+            float cy = ghostY + ghostIconHeight / 2f;
+            canvas.scale(1.12f, 1.12f, cx, cy);
+            float iconLeft = cx - ghostIconWidth / 2f;
+            float iconTop = ghostY;
+            ghostIcon.setBounds(0, 0, ghostIconWidth, ghostIconHeight);
+            canvas.translate(iconLeft, iconTop);
+            ghostIcon.draw(canvas);
+            canvas.restoreToCount(save);
+            if (!TextUtils.isEmpty(ghostLabel)) {
+                canvas.drawText(ghostLabel, cx, ghostY + ghostIconHeight + ghostTextSize + 10f,
+                        ghostTextPaint);
+            }
         }
     }
 
@@ -760,6 +752,9 @@ public class OriginalHomeView extends FrameLayout {
     protected void dispatchDraw(Canvas canvas) {
         super.dispatchDraw(canvas);
         drawIndicator(canvas);
+        if (itemDrag) {
+            drawDragOverlay(canvas);
+        }
     }
 
     private void drawIndicator(Canvas canvas) {
