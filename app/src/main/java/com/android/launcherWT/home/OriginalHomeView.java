@@ -321,11 +321,11 @@ public class OriginalHomeView extends FrameLayout {
         int viewHeight = getHeight() > 0 ? getHeight() : DESIGN_H;
         float scaleX = viewWidth / (float) DESIGN_W;
         float scaleY = viewHeight / (float) DESIGN_H;
-        float iconScale = Math.max(0.5f, iconSizeDesign / (float) DesktopState.DEFAULT_ICON_SIZE);
-        int iconPx = Math.round(iconSizeDesign * scaleX);
-        float labelScale = Math.min(1.15f, Math.max(0.6f,
-                DesktopState.DEFAULT_ICON_SIZE / (float) iconSizeDesign));
-        int labelPx = Math.round(28f * scaleY * labelScale);
+        int iconSizePx = Math.round(iconSizeDesign * scaleX);
+        int labelPx = Math.round(28f * scaleY);
+        int cellH = Math.round((DESIGN_H - 148f) * scaleY / Math.max(1, rows));
+        int maxIcon = cellH - labelPx - Math.round(8f * scaleY);
+        int iconPx = Math.min(iconSizePx, Math.max(Math.round(48f * scaleX), maxIcon));
 
         LinearLayout cell = new LinearLayout(getContext());
         cell.setOrientation(LinearLayout.VERTICAL);

@@ -189,39 +189,21 @@
                     android:minHeight="180dp">
 
                     <LinearLayout
-                        android:id="@+id/preview_cell"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
+                        android:id="@+id/preview_grid"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
                         android:gravity="center"
-                        android:orientation="vertical">
+                        android:orientation="vertical" />
 
-                        <ImageView
-                            android:id="@+id/preview_icon"
-                            android:layout_width="72dp"
-                            android:layout_height="72dp"
-                            android:scaleType="fitCenter" />
-
-                        <TextView
-                            android:id="@+id/preview_label"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:singleLine="true"
-                            android:text="@string/preview_label"
-                            android:textColor="#FFFFFFFF"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/preview_caption"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|left"
-                        android:layout_margin="10dp"
-                        android:textColor="#8CFFFFFF"
-                        android:textSize="13sp" />
                 </FrameLayout>
+
+                <TextView
+                    android:id="@+id/preview_caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:textColor="#8CFFFFFF"
+                    android:textSize="13sp" />
 
                 <TextView
                     android:layout_width="wrap_content"

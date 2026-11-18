@@ -244,3 +244,8 @@ git commit -m "feat: show vehicle status only when the service is up"
 - 保存语义：桌面布局（列/行/图标）与应用管理（增删/排序）全部走 pending 缓冲（`pendingColumns/pendingRows/pendingIconSize/pendingOrder/pendingHidden`），点保存才一次性写 `DesktopDb`，随后把 `MainActivity` 置顶再 finish，确保一定回到桌面；壁纸仍即时生效（选本地图、搜索结果、每日源当场落盘并预览）。
 - 图标预览：桌面布局 Tab 中间预览块，按桌面实际像素 1:1 渲染样例图标（`iconSize * widthPixels/1920`）与文字，底部标注「N 列 × M 行 · 图标 X px」，拖 SeekBar/换行列即时刷新。
 - 文字随图标反向缩放 `clamp(96/iconSize, 0.6, 1.15)`，避免大图标下行与行文字互相压盖（桌面 `addCell` 与设置页预览同一规则）。
+
+## 预览改为整版栅格 + 文字字号固定
+- 桌面布局 Tab 的预览从「单个样例」升级为整版缩略：按当前 列×行 画出 N×M 个样例格子（同一图标+「应用」），整块按 16:6 比例铺满预览框，改列/行/图标尺寸即时重排；说明文字移到预览框下方，不再压住最后一行。
+- 应用名文字不再随图标缩放：桌面 `addCell` 固定 28px（按 height/720 缩放），图标过大时改为自动收窄到「格高 − 文字高 − 间距」，保证文字永远看得见、行间不重叠。设置页预览用同一规则。
+- AVD 兜底：白名单里的车机应用（腾讯地图/QQ音乐/空调…）在模拟器上一个都没装时，桌面不再只有「桌面设置」，改为回退展示本机可启动应用（车机上有白名单时不受影响）。

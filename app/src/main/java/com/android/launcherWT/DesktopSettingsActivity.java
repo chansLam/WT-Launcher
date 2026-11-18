@@ -87,8 +87,7 @@ public class DesktopSettingsActivity extends Activity {
     private TextView tabWallpaper;
     private TextView tabApps;
 
-    private ImageView previewIcon;
-    private TextView previewLabel;
+    private LinearLayout previewGrid;
     private TextView previewCaption;
 
     private final List<DesktopEntries.Item> desktopItems = new ArrayList<DesktopEntries.Item>();
@@ -138,8 +137,7 @@ public class DesktopSettingsActivity extends Activity {
         tabLayout = (TextView) findViewById(R.id.tab_layout);
         tabWallpaper = (TextView) findViewById(R.id.tab_wallpaper);
         tabApps = (TextView) findViewById(R.id.tab_apps);
-        previewIcon = (ImageView) findViewById(R.id.preview_icon);
-        previewLabel = (TextView) findViewById(R.id.preview_label);
+        previewGrid = (LinearLayout) findViewById(R.id.preview_grid);
         previewCaption = (TextView) findViewById(R.id.preview_caption);
 
         tabLayout.setOnClickListener(new View.OnClickListener() {
@@ -194,6 +192,9 @@ public class DesktopSettingsActivity extends Activity {
             tabs[i].setTypeface(tabs[i].getTypeface(), selected
                     ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
             panels[i].setVisibility(selected ? View.VISIBLE : View.GONE);
+        }
+        if (index == 0) {
+            updatePreview();
         }
     }
 
@@ -279,22 +280,75 @@ public class DesktopSettingsActivity extends Activity {
         updatePreview();
     }
 
-    /** Show one cell at the exact pixel size it will take on the home grid. */
+    /** Miniature of the whole board: columns × rows cells at the real pixel size. */
     private void updatePreview() {
-        if (previewIcon == null || previewLabel == null || previewCaption == null) {
+        if (previewGrid == null || previewCaption == null) {
             return;
         }
-        android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
-        float scaleX = metrics.widthPixels / 1920f;
-        float scaleY = metrics.heightPixels / 720f;
+        int boxWidth = previewGrid.getWidth();
+        int boxHeight = previewGrid.getHeight();
+        if (boxWidth <= 0 || boxHeight <= 0) {
+            previewGrid.post(new Runnable() {
+                @Override
+                public void run() {
+                    updatePreview();
+                }
+            });
+            return;
+        }
+        int columns = Math.max(1, pendingColumns);
+        int rows = Math.max(1, pendingRows);
+        float scaleX = boxWidth / 1920f;
+        float scaleY = boxHeight / 720f;
+        int cellWidth = boxWidth / columns;
+        int cellHeight = boxHeight / rows;
+        int labelPx = Math.max(10, Math.round(28f * scaleY));
+        int gap = Math.max(2, Math.round(8f * scaleY));
         int iconPx = Math.round(pendingIconSize * scaleX);
-        float labelScale = Math.min(1.15f, Math.max(0.6f, 96f / pendingIconSize));
-        int labelPx = Math.round(28f * scaleY * labelScale);
-        previewIcon.setLayoutParams(new LinearLayout.LayoutParams(iconPx, iconPx));
-        previewIcon.setImageDrawable(sampleIcon());
-        previewLabel.setTextSize(TypedValue.COMPLEX_UNIT_PX, labelPx);
-        previewLabel.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        int maxIcon = cellHeight - labelPx - gap;
+        iconPx = Math.min(iconPx, Math.max(8, maxIcon));
+        iconPx = Math.min(iconPx, cellWidth - gap);
+
+        previewGrid.removeAllViews();
+        Drawable icon = sampleIcon();
+        for (int r = 0; r < rows; r++) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER);
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
+            row.setLayoutParams(rowParams);
+            for (int c = 0; c < columns; c++) {
+                LinearLayout cell = new LinearLayout(this);
+                cell.setOrientation(LinearLayout.VERTICAL);
+                cell.setGravity(Gravity.CENTER);
+                cell.setLayoutParams(new LinearLayout.LayoutParams(0,
+                        LinearLayout.LayoutParams.MATCH_PARENT, 1f));
+
+                ImageView sample = new ImageView(this);
+                sample.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                sample.setImageDrawable(icon);
+                sample.setLayoutParams(new LinearLayout.LayoutParams(iconPx, iconPx));
+
+                TextView name = new TextView(this);
+                name.setText(R.string.preview_label);
+                name.setTextColor(0xFFFFFFFF);
+                name.setSingleLine(true);
+                name.setTypeface(android.graphics.Typeface.create("sans-serif-condensed",
+                        android.graphics.Typeface.NORMAL));
+                name.setTextSize(TypedValue.COMPLEX_UNIT_PX, labelPx);
+                LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                nameParams.topMargin = gap;
+                name.setLayoutParams(nameParams);
+
+                cell.addView(sample);
+                cell.addView(name);
+                row.addView(cell);
+            }
+            previewGrid.addView(row);
+        }
         previewCaption.setText(getString(R.string.preview_caption_format,
                 pendingColumns, pendingRows, pendingIconSize));
     }

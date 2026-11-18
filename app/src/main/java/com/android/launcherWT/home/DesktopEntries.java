@@ -76,8 +76,20 @@ public final class DesktopEntries {
                     entry.icon(theme),
                     "com.tencent.wecarspeech".equals(entry.packageName)));
         }
+        InstalledApps installed = InstalledApps.load(context.getPackageManager());
+        if (items.isEmpty()) {
+            // No car app of the whitelist is installed (emulator/dev board): show what is there
+            // instead of an empty board.
+            List<LaunchableApp> all = installed.apps();
+            for (int i = 0; i < all.size(); i++) {
+                LaunchableApp app = all.get(i);
+                if (reserved.contains(app.packageName) || CarFilters.hidden(app.packageName)) {
+                    continue;
+                }
+                items.add(new Item(app.key(), app.packageName, app.className, app.label, 0, false));
+            }
+        }
         if (addedKeys != null && !addedKeys.isEmpty()) {
-            InstalledApps installed = InstalledApps.load(context.getPackageManager());
             List<LaunchableApp> apps = installed.apps();
             for (int i = 0; i < apps.size(); i++) {
                 LaunchableApp app = apps.get(i);
