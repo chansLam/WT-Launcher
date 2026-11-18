@@ -3,17 +3,20 @@ package com.incall.proxy.tbox;
 public class TboxManager {
     public TboxManager() {}
     public static TboxManager getInstance() { return null; }
-    public static class TboxChangedListener {
-        public TboxChangedListener() {}
-        public static TboxChangedListener getInstance() { return null; }
+    public void addTBoxChangedListener(TboxChangedListener listener) { }
+    public void removeTBoxChangedListener(TboxChangedListener listener) { }
+    public Object getMobileState(INetworkCallBack callback) { return null; }
+    public Object getWanInfo(INetworkCallBack callback) { return null; }
+    public Object getMobileNetworkState(INetworkCallBack callback) { return null; }
+
+    public interface TboxChangedListener {
     }
-    public static class TboxCallListener extends TboxChangedListener {
-        public TboxCallListener() {}
-        public static TboxCallListener getInstance() { return null; }
+
+    public interface TboxCallListener extends TboxChangedListener {
+        void onCallStatusChanged(int status, int callType);
+        void onTboxCallStateReport(TboxCommonDefine.TboxCallReportCMD cmd, String data);
+        void onTboxMobileSignalChanged(int type, int level, int value);
+        void onTboxMobileSwitchStateChanged(int status);
+        void onTboxWifiStationConnectStatusChanged(int status, String ssid);
     }
-    public Object getMobileState(INetworkCallBack a0) { return null;}
-    public Object getWanInfo(INetworkCallBack a0) { return null;}
-    public Object getMobileNetworkState(INetworkCallBack a0) { return null;}
-    public void addTBoxChangedListener(TboxChangedListener a0) { }
-    public void removeTBoxChangedListener(TboxChangedListener a0) { }
 }

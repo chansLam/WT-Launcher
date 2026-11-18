@@ -1,6 +1,6 @@
 package com.incall.proxy.tbox;
 
-public class INetworkCallBack {
-    public INetworkCallBack() {}
-    public static INetworkCallBack getInstance() { return null; }
+public interface INetworkCallBack {
+    void onException(int error, String response);
+    void onCompleted(int type, String response);
 }
