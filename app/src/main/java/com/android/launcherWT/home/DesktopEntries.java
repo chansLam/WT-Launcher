@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 
+import com.android.launcherWT.R;
 import com.android.launcherWT.core.DisplayOrder;
 import com.android.launcherWT.core.LaunchableApp;
 
@@ -24,21 +25,36 @@ public final class DesktopEntries {
         public final String title;
         public final int iconRes;
         public final boolean speech;
+        public final boolean settings;
 
         Item(String key, String packageName, String className, String title, int iconRes, boolean speech) {
+            this(key, packageName, className, title, iconRes, speech, false);
+        }
+
+        Item(String key, String packageName, String className, String title, int iconRes,
+                boolean speech, boolean settings) {
             this.key = key;
             this.packageName = packageName;
             this.className = className;
             this.title = title;
             this.iconRes = iconRes;
             this.speech = speech;
+            this.settings = settings;
         }
     }
 
     private DesktopEntries() {
     }
 
+    /** Desktop settings tile, always appended last. */
+    public static final String SETTINGS_KEY = "desktop-settings";
+
     public static List<Item> source(Context context, int theme) {
+        return source(context, theme, new ArrayList<String>());
+    }
+
+    /** Favorite whitelist plus apps the user added through the settings page. */
+    public static List<Item> source(Context context, int theme, List<String> addedKeys) {
         List<Item> items = new ArrayList<Item>();
         Set<String> reserved = new HashSet<String>();
         reserved.add(context.getPackageName());
@@ -60,18 +76,23 @@ public final class DesktopEntries {
                     entry.icon(theme),
                     "com.tencent.wecarspeech".equals(entry.packageName)));
         }
-        InstalledApps installed = InstalledApps.load(context.getPackageManager());
-        List<LaunchableApp> apps = installed.apps();
-        for (int i = 0; i < apps.size(); i++) {
-            LaunchableApp app = apps.get(i);
-            if (reserved.contains(app.packageName)) {
-                continue;
+        if (addedKeys != null && !addedKeys.isEmpty()) {
+            InstalledApps installed = InstalledApps.load(context.getPackageManager());
+            List<LaunchableApp> apps = installed.apps();
+            for (int i = 0; i < apps.size(); i++) {
+                LaunchableApp app = apps.get(i);
+                if (!addedKeys.contains(app.key()) || reserved.contains(app.packageName)) {
+                    continue;
+                }
+                if (CarFilters.hidden(app.packageName)) {
+                    continue;
+                }
+                items.add(new Item(app.key(), app.packageName, app.className, app.label, 0, false));
             }
-            if (CarFilters.hidden(app.packageName)) {
-                continue;
-            }
-            items.add(new Item(app.key(), app.packageName, app.className, app.label, 0, false));
         }
+        items.add(new Item(SETTINGS_KEY, context.getPackageName(),
+                "com.android.launcherWT.DesktopSettingsActivity", context.getString(R.string.desktop_settings),
+                R.drawable.classic_icon_system_settings, false, true));
         return items;
     }
 

@@ -14,7 +14,7 @@ import java.util.Set;
  * are not offered at all, and the third party installer flag drops the whole
  * whitelist filter.
  */
-final class CarFilters {
+public final class CarFilters {
     private static final String TAG = "CarFilters";
     private static final String PROP_THIRD_APK = "sys.thirdapk.caninstall";
     private static final String DEFAULT_CAR_TYPE = "CHANGAN_S311_CARTYPE_10";
@@ -59,7 +59,7 @@ final class CarFilters {
     }
 
     /** Hidden only when the car type and the package are disabled at the same time. */
-    static boolean hidden(String packageName) {
+    public static boolean hidden(String packageName) {
         if (packageName == null || !whitelistActive()) {
             return false;
         }

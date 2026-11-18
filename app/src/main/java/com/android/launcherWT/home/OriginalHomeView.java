@@ -1,5 +1,7 @@
 package com.android.launcherWT.home;
 
+import com.android.launcherWT.DesktopSettingsActivity;
+
 import android.animation.ValueAnimator;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
@@ -31,9 +33,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.android.launcherWT.AppManageActivity;
 import com.android.launcherWT.R;
-import com.android.launcherWT.WallpaperActivity;
 import com.android.launcherWT.core.LaunchableApp;
 import com.android.launcherWT.core.WallpaperMode;
 import com.android.launcherWT.store.DesktopDb;
@@ -63,6 +63,7 @@ public class OriginalHomeView extends FrameLayout {
     private static final int COLOR_INACTIVE = 0x6FFFFFFF;
     private static final String SPEECH_TYPE = "type";
     private static final String SPEECH_SETTING = "SETTING";
+    private static final long DRAG_HOLD_MS = 380L;
 
     private final List<View> cells = new ArrayList<View>();
     private final List<ImageView> icons = new ArrayList<ImageView>();
@@ -81,7 +82,15 @@ public class OriginalHomeView extends FrameLayout {
     private ValueAnimator animator;
     private DesktopDb database;
     private int wallpaperTicket;
-    private boolean ignoreClick;
+    private final List<DesktopEntries.Item> items = new ArrayList<DesktopEntries.Item>();
+    private int pressedIndex = -1;
+    private int draggedIndex = -1;
+    private final Runnable dragArm = new Runnable() {
+        @Override
+        public void run() {
+            beginItemDrag();
+        }
+    };
     private final OnTouchListener pressFeedback = new OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent event) {
@@ -101,17 +110,7 @@ public class OriginalHomeView extends FrameLayout {
             return false;
         }
     };
-    private boolean longPressed;
-    private final Runnable longPressRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if (dragging) {
-                return;
-            }
-            longPressed = true;
-            showMenu();
-        }
-    };
+
 
     private boolean packagesRegistered;
     private IOnThemeChange themeListener;
@@ -175,7 +174,7 @@ public class OriginalHomeView extends FrameLayout {
         cells.clear();
         icons.clear();
         labels.clear();
-        List<DesktopEntries.Item> source = DesktopEntries.source(getContext(), theme);
+        List<DesktopEntries.Item> source = DesktopEntries.source(getContext(), theme, database.displayOrder());
         Set<String> hidden = new HashSet<String>();
         for (int i = 0; i < source.size(); i++) {
             if (database.isHidden(source.get(i).key)) {
@@ -185,14 +184,13 @@ public class OriginalHomeView extends FrameLayout {
         InstalledApps installed = InstalledApps.load(getContext().getPackageManager());
         List<DesktopEntries.Item> visible = DesktopEntries.arrange(
                 source, database.displayOrder(), hidden, false);
+        items.clear();
+        items.addAll(visible);
         for (int i = 0; i < visible.size(); i++) {
             final DesktopEntries.Item item = visible.get(i);
             addCell(item.title, iconOf(item, installed), new OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (ignoreClick) {
-                        return;
-                    }
                     open(item);
                 }
             });
@@ -213,6 +211,10 @@ public class OriginalHomeView extends FrameLayout {
     }
 
     private void open(DesktopEntries.Item item) {
+        if (item.settings) {
+            getContext().startActivity(new Intent(getContext(), DesktopSettingsActivity.class));
+            return;
+        }
         DataStatisticsManager.sendEvents(getContext(), item.packageName, null);
         if (item.speech) {
             if (!speechReady()) {
@@ -257,48 +259,6 @@ public class OriginalHomeView extends FrameLayout {
                 });
             }
         }).start();
-    }
-
-    private void showMenu() {
-        ignoreClick = true;
-        Context context = getContext();
-        if (!(context instanceof android.app.Activity)) {
-            return;
-        }
-        View content = LayoutInflater.from(context).inflate(R.layout.dialog_home_menu, null);
-        final AlertDialog dialog = new AlertDialog.Builder(
-                new ContextThemeWrapper(context, android.R.style.Theme_Holo_Dialog)).setView(content).create();
-        content.findViewById(R.id.menu_apps).setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dialog.dismiss();
-                getContext().startActivity(new Intent(getContext(), AppManageActivity.class));
-            }
-        });
-        content.findViewById(R.id.menu_wallpaper).setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dialog.dismiss();
-                getContext().startActivity(new Intent(getContext(), WallpaperActivity.class));
-            }
-        });
-        dialog.setOnDismissListener(new android.content.DialogInterface.OnDismissListener() {
-            @Override
-            public void onDismiss(android.content.DialogInterface d) {
-                post(new Runnable() {
-                    @Override
-                    public void run() {
-                        ignoreClick = false;
-                    }
-                });
-            }
-        });
-        dialog.show();
-        Window window = dialog.getWindow();
-        if (window != null) {
-            int width = Math.round(280 * context.getResources().getDisplayMetrics().density);
-            window.setLayout(width, WindowManager.LayoutParams.WRAP_CONTENT);
-        }
     }
 
     @SuppressWarnings("deprecation")
@@ -352,7 +312,6 @@ public class OriginalHomeView extends FrameLayout {
             getContext().unregisterReceiver(packageReceiver);
             packagesRegistered = false;
         }
-        cancelLongPressWatch();
         unregisterThemeChange();
         super.onDetachedFromWindow();
     }
@@ -438,16 +397,21 @@ public class OriginalHomeView extends FrameLayout {
                 downY = event.getY();
                 dragStart = board.getTranslationX();
                 dragging = false;
-                armLongPress();
+                pressedIndex = cellIndexAt(event.getX(), event.getY());
+                armItemDrag();
                 if (animator != null) {
                     animator.cancel();
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
+                if (draggedIndex >= 0) {
+                    trackDrag(event.getX(), event.getY());
+                    return true;
+                }
                 float dx = event.getX() - downX;
                 float dy = event.getY() - downY;
                 if (movedPastSlop(dx, dy)) {
-                    cancelLongPressWatch();
+                    cancelItemDragArm();
                 }
                 if (Math.abs(dx) > touchSlop && Math.abs(dx) > Math.abs(dy)) {
                     dragging = true;
@@ -456,9 +420,9 @@ public class OriginalHomeView extends FrameLayout {
                 break;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
-                cancelLongPressWatch();
-                if (longPressed) {
-                    longPressed = false;
+                cancelItemDragArm();
+                if (draggedIndex >= 0) {
+                    endItemDrag();
                     return true;
                 }
                 break;
@@ -468,18 +432,97 @@ public class OriginalHomeView extends FrameLayout {
         return false;
     }
 
-    private void armLongPress() {
-        longPressed = false;
-        cancelLongPressWatch();
-        postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout());
+    private void armItemDrag() {
+        cancelItemDragArm();
+        if (pressedIndex >= 0 && items.size() > pressedIndex && items.get(pressedIndex).settings) {
+            return;
+        }
+        if (pressedIndex >= 0) {
+            postDelayed(dragArm, DRAG_HOLD_MS);
+        }
     }
 
-    private void cancelLongPressWatch() {
-        removeCallbacks(longPressRunnable);
+    private void cancelItemDragArm() {
+        removeCallbacks(dragArm);
     }
 
     private boolean movedPastSlop(float dx, float dy) {
         return Math.abs(dx) > touchSlop || Math.abs(dy) > touchSlop;
+    }
+
+    /** Insert style reorder: the dragged icon lands on a slot and the rest shift. */
+    private void beginItemDrag() {
+        if (pressedIndex < 0 || pressedIndex >= cells.size()) {
+            return;
+        }
+        draggedIndex = pressedIndex;
+        dragging = false;
+        if (animator != null) {
+            animator.cancel();
+        }
+        View cell = cells.get(draggedIndex);
+        cell.animate().cancel();
+        cell.animate().scaleX(1.12f).scaleY(1.12f).alpha(0.85f).setDuration(120).start();
+    }
+
+    private void trackDrag(float x, float y) {
+        int target = cellIndexAt(x, y);
+        if (target < 0 || target == draggedIndex) {
+            return;
+        }
+        if (target < items.size() && items.get(target).settings) {
+            target = Math.max(0, target - 1);
+        }
+        moveItem(draggedIndex, target);
+        draggedIndex = target;
+    }
+
+    private void endItemDrag() {
+        if (draggedIndex >= 0 && draggedIndex < cells.size()) {
+            View cell = cells.get(draggedIndex);
+            cell.animate().cancel();
+            cell.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(120).start();
+        }
+        draggedIndex = -1;
+        pressedIndex = -1;
+        saveOrder();
+    }
+
+    private void moveItem(int from, int to) {
+        if (from == to || from < 0 || to < 0 || from >= items.size() || to >= items.size()) {
+            return;
+        }
+        DesktopEntries.Item moved = items.remove(from);
+        items.add(to, moved);
+        View cell = cells.remove(from);
+        cells.add(to, cell);
+        icons.add(to, icons.remove(from));
+        labels.add(to, labels.remove(from));
+        requestLayout();
+        invalidate();
+    }
+
+    private void saveOrder() {
+        List<String> keys = new ArrayList<String>();
+        for (int i = 0; i < items.size(); i++) {
+            DesktopEntries.Item item = items.get(i);
+            if (!item.settings) {
+                keys.add(item.key);
+            }
+        }
+        database.setDisplayOrder(keys);
+    }
+
+    private int cellIndexAt(float x, float y) {
+        float boardX = x - board.getTranslationX();
+        for (int i = 0; i < cells.size(); i++) {
+            View cell = cells.get(i);
+            if (boardX >= cell.getLeft() && boardX < cell.getRight()
+                    && y >= cell.getTop() && y < cell.getBottom()) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @Override
@@ -490,10 +533,14 @@ public class OriginalHomeView extends FrameLayout {
                 dragStart = board.getTranslationX();
                 return true;
             case MotionEvent.ACTION_MOVE:
+                if (draggedIndex >= 0) {
+                    trackDrag(event.getX(), event.getY());
+                    return true;
+                }
                 float dx = event.getX() - downX;
                 float dy = event.getY() - downY;
                 if (movedPastSlop(dx, dy)) {
-                    cancelLongPressWatch();
+                    cancelItemDragArm();
                     dragging = true;
                 }
                 board.setTranslationX(clamp(dragStart + dx));
@@ -501,12 +548,14 @@ public class OriginalHomeView extends FrameLayout {
                 return true;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
-                cancelLongPressWatch();
-                if (!longPressed) {
-                    settle(event.getX() - downX);
+                cancelItemDragArm();
+                if (draggedIndex >= 0) {
+                    endItemDrag();
+                    return true;
                 }
+                settle(event.getX() - downX);
                 dragging = false;
-                longPressed = false;
+                pressedIndex = -1;
                 return true;
             default:
                 return super.onTouchEvent(event);

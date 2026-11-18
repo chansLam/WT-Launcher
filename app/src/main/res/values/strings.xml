@@ -36,4 +36,16 @@
     <string name="menu_wallpaper">更换壁纸</string>
     <string name="apps_hint">勾选后显示在桌面，按住左侧拖动可排序</string>
     <string name="wallpaper_unusable">这张图片不能使用</string>
+    <string name="wallpaper_settings_title">壁纸设置</string>
+    <string name="wallpaper_mode_default">默认</string>
+    <string name="wallpaper_mode_local">本地</string>
+    <string name="wallpaper_mode_search">搜索</string>
+    <string name="wallpaper_mode_daily">每日</string>
+    <string name="wallpaper_local_hint">从本地图片中选择一张</string>
+    <string name="wallpaper_source_auto">自动轮换</string>
+    <string name="app_manage_title">应用管理</string>
+    <string name="app_manage_hint">拖动右侧 ≡ 调整顺序，“移除”后不再显示在桌面</string>
+    <string name="app_manage_add_hint">可添加的应用</string>
+    <string name="app_remove">移除</string>
+    <string name="app_add">添加</string>
 </resources>
