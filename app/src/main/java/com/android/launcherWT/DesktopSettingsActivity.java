@@ -80,14 +80,13 @@ public class DesktopSettingsActivity extends Activity {
     private ScrollView desktopScroll;
     private LinearLayout availableApps;
 
-    private ScrollView panelLayout;
-    private LinearLayout panelWallpaper;
-    private LinearLayout panelApps;
+    private View panelLayout;
+    private View panelApps;
     private TextView tabLayout;
-    private TextView tabWallpaper;
     private TextView tabApps;
 
     private LinearLayout previewGrid;
+    private View previewArea;
     private TextView previewCaption;
 
     private final List<DesktopEntries.Item> desktopItems = new ArrayList<DesktopEntries.Item>();
@@ -131,12 +130,11 @@ public class DesktopSettingsActivity extends Activity {
         desktopScroll = (ScrollView) findViewById(R.id.desktop_apps_scroll);
         availableApps = (LinearLayout) findViewById(R.id.available_apps);
 
-        panelLayout = (ScrollView) findViewById(R.id.panel_layout);
-        panelWallpaper = (LinearLayout) findViewById(R.id.panel_wallpaper);
-        panelApps = (LinearLayout) findViewById(R.id.panel_apps);
+        panelLayout = (View) findViewById(R.id.panel_layout);
+        panelApps = (View) findViewById(R.id.panel_apps);
         tabLayout = (TextView) findViewById(R.id.tab_layout);
-        tabWallpaper = (TextView) findViewById(R.id.tab_wallpaper);
         tabApps = (TextView) findViewById(R.id.tab_apps);
+        previewArea = findViewById(R.id.preview_area);
         previewGrid = (LinearLayout) findViewById(R.id.preview_grid);
         previewCaption = (TextView) findViewById(R.id.preview_caption);
 
@@ -146,25 +144,13 @@ public class DesktopSettingsActivity extends Activity {
                 selectTab(0);
             }
         });
-        tabWallpaper.setOnClickListener(new View.OnClickListener() {
+        tabApps.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 selectTab(1);
             }
         });
-        tabApps.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                selectTab(2);
-            }
-        });
         findViewById(R.id.settings_back).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-            }
-        });
-        findViewById(R.id.settings_save).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 saveAndReturn();
@@ -183,8 +169,8 @@ public class DesktopSettingsActivity extends Activity {
             return;
         }
         currentTab = index;
-        TextView[] tabs = { tabLayout, tabWallpaper, tabApps };
-        View[] panels = { panelLayout, panelWallpaper, panelApps };
+        TextView[] tabs = { tabLayout, tabApps };
+        View[] panels = { panelLayout, panelApps };
         for (int i = 0; i < tabs.length; i++) {
             boolean selected = i == index;
             tabs[i].setBackgroundColor(selected ? 0x22FFFFFF : 0x00000000);
@@ -194,6 +180,7 @@ public class DesktopSettingsActivity extends Activity {
             panels[i].setVisibility(selected ? View.VISIBLE : View.GONE);
         }
         if (index == 0) {
+            showPreview();
             updatePreview();
         }
     }
@@ -280,15 +267,16 @@ public class DesktopSettingsActivity extends Activity {
         updatePreview();
     }
 
-    /** Miniature of the whole board: columns × rows cells at the real pixel size. */
+    /** Miniature of the whole board: wallpaper underneath, columns x rows cells on top. */
     private void updatePreview() {
         if (previewGrid == null || previewCaption == null) {
             return;
         }
-        int boxWidth = previewGrid.getWidth();
-        int boxHeight = previewGrid.getHeight();
+        View box = previewGrid;
+        int boxWidth = box.getWidth();
+        int boxHeight = box.getHeight();
         if (boxWidth <= 0 || boxHeight <= 0) {
-            previewGrid.post(new Runnable() {
+            box.post(new Runnable() {
                 @Override
                 public void run() {
                     updatePreview();
@@ -300,34 +288,42 @@ public class DesktopSettingsActivity extends Activity {
         int rows = Math.max(1, pendingRows);
         float scaleX = boxWidth / 1920f;
         float scaleY = boxHeight / 720f;
-        int cellWidth = boxWidth / columns;
-        int cellHeight = boxHeight / rows;
-        int labelPx = Math.max(10, Math.round(28f * scaleY));
-        int gap = Math.max(2, Math.round(8f * scaleY));
+
+        // Same margins as the real board, so the preview shows where icons can sit.
+        int padLeft = Math.round(80f * scaleX);
+        int padRight = padLeft;
+        int padTop = Math.round(64f * scaleY);
+        int padBottom = Math.round(84f * scaleY);
+        previewGrid.setPadding(padLeft, padTop, padRight, padBottom);
+
+        int innerWidth = Math.max(1, boxWidth - padLeft - padRight);
+        int innerHeight = Math.max(1, boxHeight - padTop - padBottom);
+        int cellWidth = innerWidth / columns;
+        int cellHeight = innerHeight / rows;
+        int labelPx = Math.max(9, Math.round(28f * scaleY));
+        int gap = Math.max(1, Math.round(6f * scaleY));
         int iconPx = Math.round(pendingIconSize * scaleX);
         int maxIcon = cellHeight - labelPx - gap;
-        iconPx = Math.min(iconPx, Math.max(8, maxIcon));
+        iconPx = Math.min(iconPx, Math.max(10, maxIcon));
         iconPx = Math.min(iconPx, cellWidth - gap);
 
         previewGrid.removeAllViews();
-        Drawable icon = sampleIcon();
         for (int r = 0; r < rows; r++) {
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER);
-            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
-            row.setLayoutParams(rowParams);
+            row.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
             for (int c = 0; c < columns; c++) {
                 LinearLayout cell = new LinearLayout(this);
                 cell.setOrientation(LinearLayout.VERTICAL);
-                cell.setGravity(Gravity.CENTER);
+                cell.setGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
                 cell.setLayoutParams(new LinearLayout.LayoutParams(0,
                         LinearLayout.LayoutParams.MATCH_PARENT, 1f));
 
                 ImageView sample = new ImageView(this);
                 sample.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                sample.setImageDrawable(icon);
+                sample.setImageDrawable(sampleIcon(r * columns + c));
                 sample.setLayoutParams(new LinearLayout.LayoutParams(iconPx, iconPx));
 
                 TextView name = new TextView(this);
@@ -353,10 +349,21 @@ public class DesktopSettingsActivity extends Activity {
                 pendingColumns, pendingRows, pendingIconSize));
     }
 
+    /** Classic-theme icons, cycled, so the preview looks like the real desktop. */
+    private static final int[] SAMPLE_ICONS = {
+            R.drawable.classic_icon_map, R.drawable.classic_icon_radio,
+            R.drawable.classic_icon_airconditioner, R.drawable.classic_icon_phone,
+            R.drawable.classic_icon_eryanet_link, R.drawable.classic_icon_vehicle_setting,
+            R.drawable.classic_icon_car_dvr_360, R.drawable.classic_icon_system_settings,
+            R.drawable.classic_icon_comfort_cockpit, R.drawable.classic_icon_file_manager,
+            R.drawable.ic_apps_icon_call_center, R.drawable.classic_icon_speech
+    };
+
     @SuppressWarnings("deprecation")
-    private Drawable sampleIcon() {
+    private Drawable sampleIcon(int index) {
         try {
-            return getResources().getDrawable(R.mipmap.ic_launcher_home);
+            int res = SAMPLE_ICONS[Math.abs(index) % SAMPLE_ICONS.length];
+            return getResources().getDrawable(res);
         } catch (Exception ex) {
             return getResources().getDrawable(android.R.drawable.sym_def_app_icon);
         }

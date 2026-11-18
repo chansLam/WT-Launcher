@@ -55,8 +55,9 @@
     <string name="icon_size_label">图标</string>
     <string name="desktop_layout_hint">改完返回桌面即生效；图标大小 64~160</string>
     <string name="desktop_settings_title">桌面设置</string>
-    <string name="tab_desktop_layout">桌面布局</string>
+    <string name="tab_desktop_layout">桌面布局与壁纸</string>
     <string name="tab_wallpaper">壁纸设置</string>
+    <string name="wallpaper_section_title">背景</string>
     <string name="tab_apps">应用管理</string>
     <string name="settings_save_back">保存并返回桌面</string>
     <string name="settings_saved">已保存</string>

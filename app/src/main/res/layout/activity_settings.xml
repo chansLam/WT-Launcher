@@ -36,18 +36,6 @@
             android:textSize="17sp" />
 
         <TextView
-            android:id="@+id/tab_wallpaper"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginTop="4dp"
-            android:gravity="center_vertical"
-            android:paddingLeft="14dp"
-            android:paddingRight="14dp"
-            android:text="@string/tab_wallpaper"
-            android:textColor="#88FFFFFF"
-            android:textSize="17sp" />
-
-        <TextView
             android:id="@+id/tab_apps"
             android:layout_width="match_parent"
             android:layout_height="52dp"
@@ -65,22 +53,11 @@
             android:layout_weight="1" />
 
         <Button
-            android:id="@+id/settings_save"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:text="@string/settings_save_back"
-            android:textSize="16sp" />
-
-        <TextView
             android:id="@+id/settings_back"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:gravity="center"
-            android:padding="6dp"
+            android:layout_height="48dp"
             android:text="@string/settings_back"
-            android:textColor="#99FFFFFF"
-            android:textSize="14sp" />
+            android:textSize="16sp" />
     </LinearLayout>
 
     <View
@@ -93,288 +70,291 @@
     <FrameLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_margin="20dp"
+        android:layout_margin="16dp"
         android:layout_weight="1">
 
-        <ScrollView
+        <LinearLayout
             android:id="@+id/panel_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:fillViewport="true">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/tab_desktop_layout"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="24sp"
-                    android:textStyle="bold" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/grid_columns_label"
-                        android:textColor="#B3FFFFFF"
-                        android:textSize="15sp" />
-
-                    <Spinner
-                        android:id="@+id/grid_columns"
-                        android:layout_width="80dp"
-                        android:layout_height="44dp"
-                        android:layout_marginLeft="4dp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginLeft="16dp"
-                        android:text="@string/grid_rows_label"
-                        android:textColor="#B3FFFFFF"
-                        android:textSize="15sp" />
-
-                    <Spinner
-                        android:id="@+id/grid_rows"
-                        android:layout_width="80dp"
-                        android:layout_height="44dp"
-                        android:layout_marginLeft="4dp" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/icon_size_label"
-                        android:textColor="#B3FFFFFF"
-                        android:textSize="15sp" />
-
-                    <SeekBar
-                        android:id="@+id/icon_size"
-                        android:layout_width="0dp"
-                        android:layout_height="44dp"
-                        android:layout_marginLeft="8dp"
-                        android:layout_weight="1" />
-
-                    <TextView
-                        android:id="@+id/icon_size_value"
-                        android:layout_width="52dp"
-                        android:layout_height="wrap_content"
-                        android:gravity="end"
-                        android:textColor="#FFFFFFFF"
-                        android:textSize="15sp" />
-                </LinearLayout>
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_marginTop="12dp"
-                    android:layout_weight="1"
-                    android:background="#14FFFFFF"
-                    android:minHeight="180dp">
-
-                    <LinearLayout
-                        android:id="@+id/preview_grid"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="vertical" />
-
-                </FrameLayout>
-
-                <TextView
-                    android:id="@+id/preview_caption"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:textColor="#8CFFFFFF"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/desktop_layout_hint"
-                    android:textColor="#66FFFFFF"
-                    android:textSize="12sp" />
-            </LinearLayout>
-        </ScrollView>
-
-        <LinearLayout
-            android:id="@+id/panel_wallpaper"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:visibility="gone">
+            android:orientation="vertical">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/wallpaper_settings_title"
+                android:text="@string/tab_desktop_layout"
                 android:textColor="#FFFFFFFF"
                 android:textSize="24sp"
                 android:textStyle="bold" />
 
-            <RadioGroup
-                android:id="@+id/wallpaper_mode"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="0dp"
+                android:layout_marginTop="6dp"
+                android:layout_weight="1"
                 android:orientation="horizontal">
 
-                <RadioButton
-                    android:id="@+id/mode_default"
-                    android:layout_width="wrap_content"
-                    android:layout_height="44dp"
-                    android:text="@string/wallpaper_mode_default"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="16sp" />
-
-                <RadioButton
-                    android:id="@+id/mode_local"
-                    android:layout_width="wrap_content"
-                    android:layout_height="44dp"
-                    android:text="@string/wallpaper_mode_local"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="16sp" />
-
-                <RadioButton
-                    android:id="@+id/mode_search"
-                    android:layout_width="wrap_content"
-                    android:layout_height="44dp"
-                    android:text="@string/wallpaper_mode_search"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="16sp" />
-
-                <RadioButton
-                    android:id="@+id/mode_daily"
-                    android:layout_width="wrap_content"
-                    android:layout_height="44dp"
-                    android:text="@string/wallpaper_mode_daily"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="16sp" />
-            </RadioGroup>
-
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
                 <LinearLayout
-                    android:id="@+id/local_panel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:visibility="gone">
-
-                    <Button
-                        android:id="@+id/pick_local"
-                        android:layout_width="wrap_content"
-                        android:layout_height="44dp"
-                        android:text="@string/wallpaper_custom" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/wallpaper_local_hint"
-                        android:textColor="#99FFFFFF"
-                        android:textSize="14sp" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/search_panel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:visibility="gone">
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
                         android:orientation="horizontal">
 
-                        <EditText
-                            android:id="@+id/search_query"
-                            android:layout_width="0dp"
-                            android:layout_height="44dp"
-                            android:layout_weight="1"
-                            android:hint="@string/wallpaper_search_hint"
-                            android:singleLine="true"
-                            android:textColor="#FFFFFFFF"
-                            android:textColorHint="#66FFFFFF"
-                            android:textSize="16sp" />
-
-                        <Button
-                            android:id="@+id/search_button"
-                            android:layout_width="wrap_content"
-                            android:layout_height="44dp"
-                            android:layout_marginLeft="8dp"
-                            android:text="@string/wallpaper_search" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/search_status"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textColor="#B3FFFFFF"
-                        android:textSize="14sp" />
-
-                    <HorizontalScrollView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp">
-
-                        <LinearLayout
-                            android:id="@+id/search_results"
+                        <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal" />
-                    </HorizontalScrollView>
-                </LinearLayout>
+                            android:text="@string/grid_columns_label"
+                            android:textColor="#B3FFFFFF"
+                            android:textSize="15sp" />
 
-                <LinearLayout
-                    android:id="@+id/daily_panel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:visibility="gone">
+                        <Spinner
+                            android:id="@+id/grid_columns"
+                            android:layout_width="76dp"
+                            android:layout_height="40dp"
+                            android:layout_marginLeft="4dp" />
 
-                    <Spinner
-                        android:id="@+id/daily_source"
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="14dp"
+                            android:text="@string/grid_rows_label"
+                            android:textColor="#B3FFFFFF"
+                            android:textSize="15sp" />
+
+                        <Spinner
+                            android:id="@+id/grid_rows"
+                            android:layout_width="76dp"
+                            android:layout_height="40dp"
+                            android:layout_marginLeft="4dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="14dp"
+                            android:text="@string/icon_size_label"
+                            android:textColor="#B3FFFFFF"
+                            android:textSize="15sp" />
+
+                        <SeekBar
+                            android:id="@+id/icon_size"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_marginLeft="6dp"
+                            android:layout_weight="1" />
+
+                        <TextView
+                            android:id="@+id/icon_size_value"
+                            android:layout_width="52dp"
+                            android:layout_height="wrap_content"
+                            android:gravity="end"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="15sp" />
+                    </LinearLayout>
+
+                    <FrameLayout
+                        android:id="@+id/preview_area"
                         android:layout_width="match_parent"
-                        android:layout_height="44dp" />
+                        android:layout_height="0dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_weight="1"
+                        android:background="#22000000"
+                        android:minHeight="160dp">
+
+                        <ImageView
+                            android:id="@+id/wallpaper_preview"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="centerCrop" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="#33000000" />
+
+                        <LinearLayout
+                            android:id="@+id/preview_grid"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:orientation="vertical" />
+                    </FrameLayout>
 
                     <TextView
-                        android:id="@+id/daily_status"
+                        android:id="@+id/preview_caption"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textColor="#B3FFFFFF"
-                        android:textSize="14sp" />
-                </LinearLayout>
-            </FrameLayout>
+                        android:layout_marginTop="6dp"
+                        android:textColor="#8CFFFFFF"
+                        android:textSize="13sp" />
 
-            <ImageView
-                android:id="@+id/wallpaper_preview"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_marginTop="8dp"
-                android:layout_weight="1"
-                android:background="#22000000"
-                android:scaleType="centerCrop" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/desktop_layout_hint"
+                        android:textColor="#66FFFFFF"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <ScrollView
+                    android:layout_width="380dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/wallpaper_section_title"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <RadioGroup
+                            android:id="@+id/wallpaper_mode"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:orientation="vertical">
+
+                            <RadioButton
+                                android:id="@+id/mode_default"
+                                android:layout_width="match_parent"
+                                android:layout_height="40dp"
+                                android:text="@string/wallpaper_mode_default"
+                                android:textColor="#FFFFFFFF"
+                                android:textSize="15sp" />
+
+                            <RadioButton
+                                android:id="@+id/mode_local"
+                                android:layout_width="match_parent"
+                                android:layout_height="40dp"
+                                android:text="@string/wallpaper_mode_local"
+                                android:textColor="#FFFFFFFF"
+                                android:textSize="15sp" />
+
+                            <RadioButton
+                                android:id="@+id/mode_search"
+                                android:layout_width="match_parent"
+                                android:layout_height="40dp"
+                                android:text="@string/wallpaper_mode_search"
+                                android:textColor="#FFFFFFFF"
+                                android:textSize="15sp" />
+
+                            <RadioButton
+                                android:id="@+id/mode_daily"
+                                android:layout_width="match_parent"
+                                android:layout_height="40dp"
+                                android:text="@string/wallpaper_mode_daily"
+                                android:textColor="#FFFFFFFF"
+                                android:textSize="15sp" />
+                        </RadioGroup>
+
+                        <LinearLayout
+                            android:id="@+id/local_panel"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <Button
+                                android:id="@+id/pick_local"
+                                android:layout_width="wrap_content"
+                                android:layout_height="40dp"
+                                android:text="@string/wallpaper_custom" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="@string/wallpaper_local_hint"
+                                android:textColor="#99FFFFFF"
+                                android:textSize="13sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/search_panel"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal">
+
+                                <EditText
+                                    android:id="@+id/search_query"
+                                    android:layout_width="0dp"
+                                    android:layout_height="40dp"
+                                    android:layout_weight="1"
+                                    android:hint="@string/wallpaper_search_hint"
+                                    android:singleLine="true"
+                                    android:textColor="#FFFFFFFF"
+                                    android:textColorHint="#66FFFFFF"
+                                    android:textSize="15sp" />
+
+                                <Button
+                                    android:id="@+id/search_button"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="40dp"
+                                    android:layout_marginLeft="6dp"
+                                    android:text="@string/wallpaper_search" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/search_status"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textColor="#B3FFFFFF"
+                                android:textSize="13sp" />
+
+                            <HorizontalScrollView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="6dp">
+
+                                <LinearLayout
+                                    android:id="@+id/search_results"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal" />
+                            </HorizontalScrollView>
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/daily_panel"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <Spinner
+                                android:id="@+id/daily_source"
+                                android:layout_width="match_parent"
+                                android:layout_height="40dp" />
+
+                            <TextView
+                                android:id="@+id/daily_status"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textColor="#B3FFFFFF"
+                                android:textSize="13sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </ScrollView>
+            </LinearLayout>
         </LinearLayout>
 
         <LinearLayout
