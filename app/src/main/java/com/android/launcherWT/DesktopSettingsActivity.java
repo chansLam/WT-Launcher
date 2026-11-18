@@ -109,6 +109,8 @@ public class DesktopSettingsActivity extends Activity {
     private int pendingColumns;
     private int pendingRows;
     private int pendingIconSize;
+    private SeekBar iconSeek;
+    private TextView iconValueText;
     private int currentTab = -1;
     private int dragIndex = -1;
 
@@ -222,6 +224,8 @@ public class DesktopSettingsActivity extends Activity {
         Spinner rows = (Spinner) findViewById(R.id.grid_rows);
         SeekBar iconSize = (SeekBar) findViewById(R.id.icon_size);
         TextView iconValue = (TextView) findViewById(R.id.icon_size_value);
+        iconSeek = iconSize;
+        iconValueText = iconValue;
 
         final int minColumns = DesktopDb.MIN_COLUMNS;
         final int maxColumns = DesktopDb.MAX_COLUMNS;
@@ -297,6 +301,33 @@ public class DesktopSettingsActivity extends Activity {
         updatePreview();
     }
 
+    /**
+     * The slider must not offer sizes the current grid cannot hold: clamp the maximum to the
+     * biggest icon that still fits a cell (cell height minus the label block, cell width minus gap).
+     */
+    private void applyIconLimit() {
+        if (iconSeek == null) {
+            return;
+        }
+        int cellWidth = (1920 - 160) / Math.max(1, pendingColumns);
+        int cellHeight = (720 - 148) / Math.max(1, pendingRows);
+        int labelBox = Math.round(28f * 1.5f);
+        int gap = 5;
+        int fits = Math.min(cellHeight - labelBox - gap, cellWidth - gap);
+        int limit = Math.max(DesktopDb.MIN_ICON, Math.min(DesktopDb.MAX_ICON, fits));
+        int progressMax = limit - DesktopDb.MIN_ICON;
+        if (iconSeek.getMax() != progressMax) {
+            iconSeek.setMax(progressMax);
+        }
+        if (pendingIconSize > limit) {
+            pendingIconSize = limit;
+            iconSeek.setProgress(pendingIconSize - DesktopDb.MIN_ICON);
+            if (iconValueText != null) {
+                iconValueText.setText(Integer.toString(pendingIconSize));
+            }
+        }
+    }
+
     /** Keeps preview_area at the car screen ratio, letterboxed inside preview_frame. */
     private void applyPreviewAspect() {
         if (previewFrame == null || previewArea == null) {
@@ -340,6 +371,7 @@ public class DesktopSettingsActivity extends Activity {
             });
             return;
         }
+        applyIconLimit();
         int columns = Math.max(1, pendingColumns);
         int rows = Math.max(1, pendingRows);
         float scaleX = boxWidth / 1920f;
