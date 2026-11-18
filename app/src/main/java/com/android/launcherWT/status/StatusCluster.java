@@ -23,6 +23,8 @@ import com.autopai.support.utils.UsbView;
 import com.autopai.support.utils.WifiView;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -262,6 +264,93 @@ public final class StatusCluster {
         probe("com.incall.proxy.bluetooth.BluetoothManager");
         probeClassPath();
         probeJarOwner("com/incall/proxy/ac/AirConditionManager.class");
+        dumpVendorJar();
+    }
+
+    /**
+     * The head unit ships the proxy as /system/framework/CoagentProxy_for_ca.jar.
+     * Copy it out and list its class names, so the stub API can be rebuilt
+     * exactly instead of guessed: our rebuilt listeners currently fail with
+     * IncompatibleClassChangeError on this jar.
+     */
+    private void dumpVendorJar() {
+        String path = null;
+        try {
+            ClassLoader loader = getClass().getClassLoader();
+            String text = String.valueOf(loader);
+            int at = text.indexOf("/system/framework/");
+            if (at > 0) {
+                int end = text.indexOf(".jar", at);
+                if (end > 0) {
+                    path = text.substring(at, end + 4);
+                }
+            }
+        } catch (Throwable error) {
+            report.append("vardump path error: ").append(error).append('\n');
+        }
+        if (path == null) {
+            path = "/system/framework/CoagentProxy_for_ca.jar";
+        }
+        report.append("vendorjar=").append(path).append('\n');
+        File source = new File(path);
+        if (!source.canRead()) {
+            report.append("vendorjar unreadable\n");
+            return;
+        }
+        java.util.zip.ZipFile zip = null;
+        StringBuilder classes = new StringBuilder();
+        try {
+            zip = new java.util.zip.ZipFile(source);
+            java.util.Enumeration<? extends java.util.zip.ZipEntry> entries = zip.entries();
+            int count = 0;
+            while (entries.hasMoreElements()) {
+                java.util.zip.ZipEntry entry = entries.nextElement();
+                String name = entry.getName();
+                if (!name.startsWith("com/incall/proxy/")) {
+                    continue;
+                }
+                classes.append(name).append('\n');
+                count++;
+            }
+            report.append("vendorjar entries=").append(count).append('\n');
+            writeText("/sdcard/launcherWT-proxy-classes.txt", classes.toString());
+        } catch (Throwable error) {
+            report.append("vendorjar list error: ").append(error).append('\n');
+        } finally {
+            if (zip != null) {
+                try {
+                    zip.close();
+                } catch (IOException ignored) {
+                }
+            }
+        }
+        try {
+            FileInputStream input = new FileInputStream(source);
+            FileOutputStream output = new FileOutputStream("/sdcard/launcherWT-CoagentProxy_for_ca.jar");
+            byte[] buffer = new byte[8192];
+            int read;
+            long total = 0;
+            while ((read = input.read(buffer)) > 0) {
+                output.write(buffer, 0, read);
+                total += read;
+            }
+            output.flush();
+            output.close();
+            input.close();
+            report.append("vendorjar copied=").append(total).append(" bytes\n");
+        } catch (Throwable error) {
+            report.append("vendorjar copy error: ").append(error).append('\n');
+        }
+    }
+
+    private void writeText(String path, String text) {
+        try {
+            FileWriter writer = new FileWriter(new File(path), false);
+            writer.write(text);
+            writer.close();
+        } catch (Throwable error) {
+            report.append("write ").append(path).append(" error: ").append(error).append('\n');
+        }
     }
 
     /** Which classloader the app actually runs with (shared libraries appended or not). */
