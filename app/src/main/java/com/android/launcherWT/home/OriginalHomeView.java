@@ -64,7 +64,7 @@ public class OriginalHomeView extends FrameLayout {
     private static final int COLOR_INACTIVE = 0x6FFFFFFF;
     private static final String SPEECH_TYPE = "type";
     private static final String SPEECH_SETTING = "SETTING";
-    private static final long DRAG_HOLD_MS = 380L;
+    private static final long DRAG_HOLD_MS = 300L;
 
     private final List<View> cells = new ArrayList<View>();
     private final List<ImageView> icons = new ArrayList<ImageView>();
@@ -86,6 +86,12 @@ public class OriginalHomeView extends FrameLayout {
     private final List<DesktopEntries.Item> items = new ArrayList<DesktopEntries.Item>();
     private int pressedIndex = -1;
     private int draggedIndex = -1;
+    private int dragTarget = -1;
+    private View dragGhost;
+    private float grabDx;
+    private float grabDy;
+    private boolean itemDrag;
+    private final Paint slotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Runnable dragArm = new Runnable() {
         @Override
         public void run() {
@@ -418,7 +424,7 @@ public class OriginalHomeView extends FrameLayout {
         int clusterTop = status.topMarginPx();
         cluster.layout(width - cluster.getMeasuredWidth(), clusterTop,
                 width, clusterTop + cluster.getMeasuredHeight());
-        if (!dragging && (animator == null || !animator.isRunning())) {
+        if (!dragging && !itemDrag && (animator == null || !animator.isRunning())) {
             board.setTranslationX(-page * width);
         }
     }
@@ -453,9 +459,18 @@ public class OriginalHomeView extends FrameLayout {
                 }
                 float dx = event.getX() - downX;
                 float dy = event.getY() - downY;
-                if (movedPastSlop(dx, dy)) {
-                    cancelItemDragArm();
+                if (!movedPastSlop(dx, dy)) {
+                    break;
                 }
+                // A vertical drag that starts on an icon reorders it (insert style) instead of
+                // paging; only a clearly horizontal gesture is treated as a page swipe.
+                if (Math.abs(dy) > Math.abs(dx) && pressedIndex >= 0) {
+                    cancelItemDragArm();
+                    beginItemDrag();
+                    trackDrag(event.getX(), event.getY());
+                    return true;
+                }
+                cancelItemDragArm();
                 if (Math.abs(dx) > touchSlop && Math.abs(dx) > Math.abs(dy)) {
                     dragging = true;
                     return true;
@@ -499,36 +514,127 @@ public class OriginalHomeView extends FrameLayout {
             return;
         }
         draggedIndex = pressedIndex;
+        dragTarget = pressedIndex;
+        itemDrag = true;
         dragging = false;
         if (animator != null) {
             animator.cancel();
         }
         View cell = cells.get(draggedIndex);
         cell.animate().cancel();
-        cell.animate().scaleX(1.12f).scaleY(1.12f).alpha(0.85f).setDuration(120).start();
+        cell.setAlpha(0.22f);
+        // Lift a copy of the icon and let it follow the finger; the original slot is left
+        // as a dimmed placeholder until the finger is released.
+        dragGhost = buildGhost(draggedIndex);
+        int ghostWidth = Math.max(1, cell.getWidth());
+        int ghostHeight = Math.max(1, cell.getHeight());
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ghostWidth, ghostHeight);
+        addView(dragGhost, params);
+        float cellLeft = cell.getLeft() + board.getTranslationX();
+        float cellTop = cell.getTop();
+        grabDx = downX - cellLeft;
+        grabDy = downY - cellTop;
+        dragGhost.setX(cellLeft);
+        dragGhost.setY(cellTop);
+        dragGhost.setScaleX(1.1f);
+        dragGhost.setScaleY(1.1f);
+        invalidate();
+    }
+
+    private View buildGhost(int index) {
+        Context context = getContext();
+        LinearLayout ghost = new LinearLayout(context);
+        ghost.setOrientation(LinearLayout.VERTICAL);
+        ghost.setGravity(Gravity.CENTER);
+        ImageView image = new ImageView(context);
+        image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        View source = icons.get(index);
+        image.setImageDrawable(((ImageView) source).getDrawable());
+        LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(
+                source.getLayoutParams().width, source.getLayoutParams().height);
+        imageParams.gravity = Gravity.CENTER_HORIZONTAL;
+        image.setLayoutParams(imageParams);
+        ghost.addView(image);
+        TextView label = labels.get(index);
+        TextView copy = new TextView(context);
+        copy.setText(label.getText());
+        copy.setTextColor(Color.WHITE);
+        copy.setGravity(Gravity.CENTER_HORIZONTAL);
+        copy.setSingleLine(true);
+        copy.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+        copy.setTypeface(Typeface.create("sans-serif-condensed", Typeface.NORMAL));
+        copy.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, label.getTextSize());
+        LinearLayout.LayoutParams copyParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        copyParams.gravity = Gravity.CENTER_HORIZONTAL;
+        copyParams.topMargin = Math.round(8f * (getHeight() / (float) DESIGN_H));
+        copy.setLayoutParams(copyParams);
+        ghost.addView(copy);
+        return ghost;
     }
 
     private void trackDrag(float x, float y) {
+        if (dragGhost != null) {
+            dragGhost.setX(x - grabDx);
+            dragGhost.setY(y - grabDy);
+        }
         int target = cellIndexAt(x, y);
-        if (target < 0 || target == draggedIndex) {
+        if (target < 0) {
             return;
         }
-        if (target < items.size() && items.get(target).settings) {
+        if (target >= items.size()) {
+            target = items.size() - 1;
+        }
+        if (items.size() > target && items.get(target).settings) {
             target = Math.max(0, target - 1);
         }
-        moveItem(draggedIndex, target);
-        draggedIndex = target;
+        if (target != dragTarget) {
+            dragTarget = target;
+            invalidate();
+        }
     }
 
     private void endItemDrag() {
-        if (draggedIndex >= 0 && draggedIndex < cells.size()) {
-            View cell = cells.get(draggedIndex);
-            cell.animate().cancel();
-            cell.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(120).start();
+        int from = draggedIndex;
+        int to = dragTarget;
+        if (dragGhost != null) {
+            removeView(dragGhost);
+            dragGhost = null;
         }
+        if (from >= 0 && from < cells.size()) {
+            View cell = cells.get(from);
+            cell.animate().cancel();
+            cell.animate().alpha(1f).setDuration(120).start();
+        }
+        itemDrag = false;
+        dragTarget = -1;
         draggedIndex = -1;
         pressedIndex = -1;
-        saveOrder();
+        invalidate();
+        if (from >= 0 && to >= 0 && from != to) {
+            moveItem(from, to);
+            saveOrder();
+        }
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        if (itemDrag && dragTarget >= 0 && dragTarget < cells.size()) {
+            View cell = cells.get(dragTarget);
+            float left = cell.getLeft() + board.getTranslationX();
+            float top = cell.getTop();
+            // drawRoundRect with a radius needs API 21, so keep the target slot a plain rect.
+            slotPaint.setStyle(Paint.Style.FILL);
+            slotPaint.setColor(0x33FFFFFF);
+            canvas.drawRect(left + 4, top + 4, left + cell.getWidth() - 4,
+                    top + cell.getHeight() - 4, slotPaint);
+            slotPaint.setStyle(Paint.Style.STROKE);
+            slotPaint.setStrokeWidth(Math.max(1f, 2f * (getHeight() / (float) DESIGN_H)));
+            slotPaint.setColor(0x66FFFFFF);
+            canvas.drawRect(left + 4, top + 4, left + cell.getWidth() - 4,
+                    top + cell.getHeight() - 4, slotPaint);
+        }
     }
 
     private void moveItem(int from, int to) {
@@ -541,6 +647,10 @@ public class OriginalHomeView extends FrameLayout {
         cells.add(to, cell);
         icons.add(to, icons.remove(from));
         labels.add(to, labels.remove(from));
+        // Board places children by their index in the ViewGroup, so the view order has to
+        // follow the item order or the drawn slot and the stored item drift apart.
+        board.removeView(cell);
+        board.addView(cell, Math.min(to, board.getChildCount()));
         requestLayout();
         invalidate();
     }
