@@ -89,6 +89,11 @@ public final class DesktopEntries {
             if (isSystemApp(manager, app.packageName)) {
                 continue;
             }
+            // 车厂预装但没打 system 标志的应用（环视行车记录、系统日志、工程模式、
+            // 升级、高德 Agent 之类）同样不该自动上桌面：它们和桌面本体同平台签名。
+            if (isPlatformSigned(context, manager, app.packageName)) {
+                continue;
+            }
             items.add(new Item(app.key(), app.packageName, app.className, app.label, 0, false));
         }
         if (items.isEmpty()) {
@@ -153,6 +158,38 @@ public final class DesktopEntries {
             return (info.flags & mask) != 0;
         } catch (PackageManager.NameNotFoundException missing) {
             return true;
+        }
+    }
+
+    private static byte[] platformSigner;
+
+    /**
+     * True when the app carries the same signing certificate as this launcher.
+     * On the head unit that means "factory preinstalled": these apps stay out of
+     * the automatic desktop fill and only show up in the manual add list.
+     */
+    @SuppressWarnings("deprecation")
+    public static boolean isPlatformSigned(Context context, PackageManager manager, String packageName) {
+        if (platformSigner == null) {
+            try {
+                platformSigner = manager.getPackageInfo(context.getPackageName(),
+                        PackageManager.GET_SIGNATURES).signatures[0].toByteArray();
+            } catch (Throwable error) {
+                platformSigner = new byte[0];
+            }
+        }
+        if (platformSigner.length == 0) {
+            return false;
+        }
+        try {
+            android.content.pm.PackageInfo info =
+                    manager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES);
+            if (info.signatures == null || info.signatures.length == 0) {
+                return false;
+            }
+            return java.util.Arrays.equals(platformSigner, info.signatures[0].toByteArray());
+        } catch (Throwable error) {
+            return false;
         }
     }
 

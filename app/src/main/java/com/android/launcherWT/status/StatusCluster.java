@@ -24,6 +24,7 @@ import com.autopai.support.utils.WifiView;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -259,6 +260,113 @@ public final class StatusCluster {
         probe("com.incall.proxy.can.CanManager");
         probe("com.incall.proxy.tbox.TboxManager");
         probe("com.incall.proxy.bluetooth.BluetoothManager");
+        probeClassPath();
+        probeJarOwner("com/incall/proxy/ac/AirConditionManager.class");
+    }
+
+    /** Which classloader the app actually runs with (shared libraries appended or not). */
+    private void probeClassPath() {
+        try {
+            ClassLoader loader = getClass().getClassLoader();
+            report.append("classloader=").append(loader).append('\n');
+        } catch (Throwable error) {
+            report.append("classloader=").append(error).append('\n');
+        }
+        try {
+            android.content.pm.ApplicationInfo info = context
+                    .getPackageManager()
+                    .getApplicationInfo(context.getPackageName(), 0);
+            report.append("sourceDir=").append(info.sourceDir)
+                    .append(",flags=0x").append(Integer.toHexString(info.flags)).append('\n');
+        } catch (Throwable error) {
+            report.append("sourceDir=").append(error).append('\n');
+        }
+    }
+
+    /**
+     * Search the usual vendor locations for a jar/apk that really contains the
+     * missing class. If one is found, try loading it with a DexClassLoader: that
+     * tells whether the head unit ships the library outside our classpath.
+     */
+    private void probeJarOwner(String entryName) {
+        String[] roots = {"/system/framework", "/system/app", "/system/priv-app", "/data/app"};
+        int scanned = 0;
+        for (int r = 0; r < roots.length; r++) {
+            File dir = new File(roots[r]);
+            File[] files = dir.listFiles();
+            if (files == null) {
+                report.append("scan ").append(roots[r]).append("=missing\n");
+                continue;
+            }
+            for (int i = 0; i < files.length; i++) {
+                File file = files[i];
+                File candidate = file;
+                if (file.isDirectory()) {
+                    File[] inner = file.listFiles();
+                    if (inner == null || inner.length == 0) {
+                        continue;
+                    }
+                    candidate = inner[0];
+                }
+                String name = candidate.getName();
+                if (!name.endsWith(".jar") && !name.endsWith(".apk")) {
+                    continue;
+                }
+                scanned++;
+                if (!containsEntry(candidate, entryName)) {
+                    continue;
+                }
+                report.append("found ").append(candidate.getAbsolutePath()).append('\n');
+                try {
+                    ClassLoader loader = new dalvik.system.DexClassLoader(
+                            candidate.getAbsolutePath(), null, null, getClass().getClassLoader());
+                    Class.forName("com.incall.proxy.ac.AirConditionManager", true, loader);
+                    report.append("dexload ok\n");
+                } catch (Throwable error) {
+                    report.append("dexload ").append(error).append('\n');
+                }
+                return;
+            }
+        }
+        report.append("jarowner=none (scanned ").append(scanned).append(")\n");
+        // 即便没找到也把 /system/framework 里的包名列出来，方便判断厂商库叫什么名字。
+        File framework = new File("/system/framework");
+        File[] jars = framework.listFiles();
+        if (jars == null) {
+            report.append("framework=list denied\n");
+        } else {
+            StringBuilder names = new StringBuilder();
+            int listed = 0;
+            for (int i = 0; i < jars.length && listed < 40; i++) {
+                String name = jars[i].getName();
+                if (!name.endsWith(".jar") && !name.endsWith(".apk")) {
+                    continue;
+                }
+                if (listed > 0) {
+                    names.append(',');
+                }
+                names.append(name);
+                listed++;
+            }
+            report.append("framework(").append(jars.length).append(")=").append(names).append('\n');
+        }
+    }
+
+    private boolean containsEntry(File archive, String entryName) {
+        java.util.zip.ZipFile zip = null;
+        try {
+            zip = new java.util.zip.ZipFile(archive);
+            return zip.getEntry(entryName) != null;
+        } catch (Throwable error) {
+            return false;
+        } finally {
+            if (zip != null) {
+                try {
+                    zip.close();
+                } catch (IOException ignored) {
+                }
+            }
+        }
     }
 
     private void probe(String className) {

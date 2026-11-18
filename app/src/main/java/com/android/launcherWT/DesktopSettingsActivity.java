@@ -1277,13 +1277,19 @@ public class DesktopSettingsActivity extends Activity {
     private void bindAvailable() {
         availableApps.removeAllViews();
         Set<String> onDesktop = new HashSet<String>();
+        Set<String> onDesktopPackages = new HashSet<String>();
         for (int i = 0; i < desktopItems.size(); i++) {
-            onDesktop.add(desktopItems.get(i).key);
+            DesktopEntries.Item item = desktopItems.get(i);
+            onDesktop.add(item.key);
+            onDesktopPackages.add(item.packageName);
         }
         List<LaunchableApp> apps = installed.apps();
         for (int i = 0; i < apps.size(); i++) {
             final LaunchableApp app = apps.get(i);
+            // 同一应用已经在桌面（预置白名单 entry 和 InstalledApps 的 key 可能不同，
+            // 比如组件名不同），按包名去重，右侧不再重复出现。
             if (onDesktop.contains(app.key())
+                    || onDesktopPackages.contains(app.packageName)
                     || getPackageName().equals(app.packageName)
                     || CarFilters.hidden(app.packageName)) {
                 continue;
