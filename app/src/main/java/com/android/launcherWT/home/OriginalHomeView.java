@@ -590,7 +590,11 @@ public class OriginalHomeView extends FrameLayout {
         pressedIndex = -1;
         invalidate();
         if (from >= 0 && to >= 0 && from != to) {
-            moveItem(from, to);
+            if (database.dragMode() == DesktopState.DRAG_SWAP) {
+                swapItems(from, to);
+            } else {
+                moveItem(from, to);
+            }
             saveOrder();
         }
     }
@@ -641,8 +645,31 @@ public class OriginalHomeView extends FrameLayout {
         labels.add(to, labels.remove(from));
         // Board places children by their index in the ViewGroup, so the view order has to
         // follow the item order or the drawn slot and the stored item drift apart.
-        board.removeView(cell);
-        board.addView(cell, Math.min(to, board.getChildCount()));
+        syncBoardOrder();
+    }
+
+    /** Drag mode "swap": the two icons trade slots, nothing else shifts. */
+    private void swapItems(int first, int second) {
+        if (first < 0 || second < 0 || first >= items.size() || second >= items.size()) {
+            return;
+        }
+        DesktopEntries.Item moved = items.set(first, items.get(second));
+        items.set(second, moved);
+        View cell = cells.set(first, cells.get(second));
+        cells.set(second, cell);
+        ImageView icon = icons.set(first, icons.get(second));
+        icons.set(second, icon);
+        TextView label = labels.set(first, labels.get(second));
+        labels.set(second, label);
+        syncBoardOrder();
+    }
+
+    /** Board lays children out by index, so the view order has to mirror the item list. */
+    private void syncBoardOrder() {
+        board.removeAllViews();
+        for (int i = 0; i < cells.size(); i++) {
+            board.addView(cells.get(i));
+        }
         requestLayout();
         invalidate();
     }

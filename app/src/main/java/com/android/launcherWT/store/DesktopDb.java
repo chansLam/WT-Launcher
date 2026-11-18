@@ -106,6 +106,24 @@ public class DesktopDb extends DesktopState {
         writeLayout(row.columns, row.rows, clamp(size, MIN_ICON, MAX_ICON));
     }
 
+    private static final String PREFS = "launcher_prefs";
+    private static final String KEY_DRAG_MODE = "drag_mode";
+
+    @Override
+    public int dragMode() {
+        int mode = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getInt(KEY_DRAG_MODE, DesktopState.DRAG_INSERT);
+        return mode == DesktopState.DRAG_SWAP ? DesktopState.DRAG_SWAP : DesktopState.DRAG_INSERT;
+    }
+
+    @Override
+    public void setDragMode(int mode) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putInt(KEY_DRAG_MODE, mode == DesktopState.DRAG_SWAP
+                        ? DesktopState.DRAG_SWAP : DesktopState.DRAG_INSERT)
+                .commit();
+    }
+
     private static int clamp(int value, int min, int max) {
         return value < min ? min : (value > max ? max : value);
     }

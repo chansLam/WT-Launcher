@@ -280,3 +280,33 @@ git commit -m "feat: show vehicle status only when the service is up"
   `applyPreviewAspect()` 按 1920:720 计算 `min(frameWidth, frameHeight*8/3)`，并用
   `OnGlobalLayoutListener` 在每次布局后复核，保证 8:3 不变形（截图实测 971×364）。
 - 版面因此左右留白，但预览内的栅格／边距／分页短条仍按真实桌面参数绘制。
+
+## 图标滑杆按行列联动钳制（commit 45e806e）
+
+- 问题：5×4 下图标仍可拉到 160px，格子高度不足，图标压住文字、行间互相重叠。
+- 改法：`applyIconLimit()` 先按 `fits = min((DESIGN_H-148)/rows - 42 - 5, (DESIGN_W-160)/cols - 5)`
+  算出当前行列下图标可放的上限，夹在 `[MIN_ICON=64, MAX_ICON=160]`；滑杆 `max` 随之收缩，
+  超出上限的值立刻回落到上限并刷新 `icon_size_value` 与预览。
+- 验收：5×3 上限 160，5×4 上限约 96；emulator-5554 截图 `lay-10.png` / `lay-11.png`。
+
+## 长按浮起拖动 + 松手插入（commit f38848e、3545b8f）
+
+- 手势：`DRAG_HOLD_MS` 300ms 长按 → `beginItemDrag()` 记下抓取偏移 `grabDx/grabDy`；
+  `onInterceptTouchEvent` 里 ACTION_MOVE 一旦 `|dy|>|dx|` 且已按下，直接 `cancelItemDragArm(); beginItemDrag(); trackDrag(...); return true`，
+  竖直拖动立刻进入拖拽，不再被判成翻页。
+- 视觉：`dispatchDraw` 末尾追加 `drawDragOverlay(canvas)` —— 先画目标格高亮（`drawRect` 0x33FFFFFF 填充 + 0x66FFFFFF 描边，避免 API19 无 5 参 `drawRoundRect`），
+  再把浮起图标按 1.12 倍缩放画在手指出，图标下方跟白色标签；原格 `alpha=0.22` 留暗影。第一版用临时子 View `addView/setX/setY` 完全不可见，已废弃。
+- 提交：松手才落库（`endItemDrag` → `moveItem(from,to)` 插入 → `saveOrder()`）。
+- 顺序一致性：新增 `syncBoardOrder()`，在 `moveItem/swapItems` 后按 `cells` 顺序 `removeAllViews()+addView` 重排子 View，修掉「画出来的图标」与 `items` 错位、重启后顺序不一致的老 bug。
+- 验收：`ghost-n1.png`（Calendar 浮在手指、原格淡出、目标格白框）、`ghost-n3.png`（松手后 Calendar 由 slot0 插入到 slot10，其余顺移）。
+
+## 拖动模式：插入 / 交换（本轮）
+
+- 存储：`DesktopState` 新增 `DRAG_INSERT=0` / `DRAG_SWAP=1` 与**非抽象**的 `dragMode()` / `setDragMode(int)`（旧实现类不必改）；
+  `DesktopDb` override 后用 SharedPreferences `launcher_prefs` 的 `drag_mode` 存取，不动 SQLite schema，免迁移。
+- 分流：`endItemDrag()` 按 `database.dragMode()` 走 `swapItems(from,to)` 或原 `moveItem(from,to)`，两条路径都 `saveOrder()`；
+  `swapItems` 交换 `items/cells/icons/labels` 四处元素后 `syncBoardOrder()`。
+- UI：设置页第一 Tab 的「拖动」行 —— 标签「拖动」+ Spinner（插入/交换）+ 说明「拖到已有图标上的处理方式」，选择进 `pendingDragMode`，点「返回桌面」或系统返回键时 `saveAndReturn()` 统一写库。
+- 验收（emulator-5554）：`dragmode-1/2.png` 见下拉两项；切到「交换」后把 Clock(0) 竖直拖到 Gestures(10) → `dragmode-11.png` 显示两者互换、其余 13 项位置不变；
+  「插入」模式同手势则是整段顺移（`ghost-n3.png`）。
+- 坑：设置页 Spinner 下拉是 PopupWindow，选完会吞掉紧接着的一次点击，需要分两轮 tap；`settings_back` 真实 bounds `[20,604][216,652]`，中心 (118,628)，点到 662 会落在按钮下方无效。

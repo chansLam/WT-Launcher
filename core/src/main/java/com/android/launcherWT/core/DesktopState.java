@@ -42,6 +42,18 @@ public abstract class DesktopState {
 
     public abstract void setIconSize(int size);
 
+    /** Drag onto an occupied slot pushes the rest along. */
+    public static final int DRAG_INSERT = 0;
+    /** Drag onto an occupied slot swaps the two icons. */
+    public static final int DRAG_SWAP = 1;
+
+    public int dragMode() {
+        return DRAG_INSERT;
+    }
+
+    public void setDragMode(int mode) {
+    }
+
     public abstract List<String> displayOrder();
 
     public abstract void setDisplayOrder(List<String> keys);
@@ -60,6 +72,7 @@ public abstract class DesktopState {
         private int columns = DEFAULT_COLUMNS;
         private int rows = DEFAULT_ROWS;
         private int iconSize = DEFAULT_ICON_SIZE;
+        private int dragMode = DRAG_INSERT;
 
         @Override
         public boolean isHidden(String key) {
@@ -103,6 +116,16 @@ public abstract class DesktopState {
         @Override
         public void setIconSize(int size) {
             this.iconSize = size;
+        }
+
+        @Override
+        public int dragMode() {
+            return dragMode;
+        }
+
+        @Override
+        public void setDragMode(int mode) {
+            this.dragMode = mode == DRAG_SWAP ? DRAG_SWAP : DRAG_INSERT;
         }
 
         @Override

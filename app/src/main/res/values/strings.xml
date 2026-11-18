@@ -51,6 +51,10 @@
     <string name="settings_back">返回桌面</string>
     <string name="desktop_layout_title">桌面设置</string>
     <string name="grid_columns_label">列</string>
+    <string name="drag_mode_label">拖动</string>
+    <string name="drag_mode_hint">拖到已有图标上的处理方式</string>
+    <string name="drag_insert">插入</string>
+    <string name="drag_swap">交换</string>
     <string name="grid_rows_label">行</string>
     <string name="icon_size_label">图标</string>
     <string name="desktop_layout_hint">改完返回桌面即生效；图标大小 64~160</string>

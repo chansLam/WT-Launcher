@@ -1,6 +1,7 @@
 package com.android.launcherWT;
 
 import android.app.Activity;
+import com.android.launcherWT.core.DesktopState;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -109,6 +110,7 @@ public class DesktopSettingsActivity extends Activity {
     private int pendingColumns;
     private int pendingRows;
     private int pendingIconSize;
+    private int pendingDragMode;
     private SeekBar iconSeek;
     private TextView iconValueText;
     private int currentTab = -1;
@@ -252,6 +254,26 @@ public class DesktopSettingsActivity extends Activity {
         rows.setAdapter(rowAdapter);
         pendingRows = database.gridRows();
         rows.setSelection(clampIndex(pendingRows - minRows, rowLabels.length));
+
+        Spinner dragMode = (Spinner) findViewById(R.id.drag_mode);
+        String[] dragLabels = new String[] {
+                getString(R.string.drag_insert), getString(R.string.drag_swap) };
+        ArrayAdapter<String> dragAdapter = new ArrayAdapter<String>(this,
+                android.R.layout.simple_spinner_item, dragLabels);
+        dragAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        dragMode.setAdapter(dragAdapter);
+        pendingDragMode = database.dragMode();
+        dragMode.setSelection(pendingDragMode == DesktopState.DRAG_SWAP ? 1 : 0);
+        dragMode.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                pendingDragMode = position == 1 ? DesktopState.DRAG_SWAP : DesktopState.DRAG_INSERT;
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
 
         final int minIcon = DesktopDb.MIN_ICON;
         pendingIconSize = database.iconSize();
@@ -1287,6 +1309,7 @@ public class DesktopSettingsActivity extends Activity {
         database.setGridColumns(pendingColumns);
         database.setGridRows(pendingRows);
         database.setIconSize(pendingIconSize);
+        database.setDragMode(pendingDragMode);
         syncPendingOrder();
         database.setDisplayOrder(pendingOrder);
         Set<String> hidden = new HashSet<String>(pendingHidden);
@@ -1311,6 +1334,12 @@ public class DesktopSettingsActivity extends Activity {
             // LauncherWT is not the current home task; still leave settings.
         }
         finish();
+    }
+
+    @Override
+    public void onBackPressed() {
+        // 返回即保存：与「返回桌面」按钮行为一致，避免设置丢失
+        saveAndReturn();
     }
 
     private static void close(Closeable closeable) {
