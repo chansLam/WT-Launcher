@@ -30,6 +30,19 @@ android {
         }
     }
 
+    // i.MX6Q 车机平台证书（freescale platform，与本机系统应用同签名）
+    // 私钥不入库：放在仓库根 .signing/platform.jks（已被 *.jks 忽略）
+    signingConfigs {
+        platform {
+            storeFile rootProject.file(".signing/platform.jks")
+            storePassword "android"
+            keyAlias "platform"
+            keyPassword "android"
+            enableV1Signing true
+            enableV2Signing true
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -38,6 +51,10 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.platform
+        }
+        debug {
+            // AVD/调试仍用默认 debug 签名，避免与已装 .avd 包签名冲突
         }
     }
 
