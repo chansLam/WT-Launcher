@@ -18,7 +18,9 @@ import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.provider.Settings;
+import android.graphics.Typeface;
 import android.util.Log;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.Toast;
 import android.view.ViewConfiguration;
@@ -80,6 +82,25 @@ public class OriginalHomeView extends FrameLayout {
     private DesktopDb database;
     private int wallpaperTicket;
     private boolean ignoreClick;
+    private final OnTouchListener pressFeedback = new OnTouchListener() {
+        @Override
+        public boolean onTouch(View view, MotionEvent event) {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    view.animate().cancel();
+                    view.animate().alpha(0.65f).setDuration(80).start();
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    view.animate().cancel();
+                    view.animate().alpha(1f).setDuration(120).start();
+                    break;
+                default:
+                    break;
+            }
+            return false;
+        }
+    };
     private boolean longPressed;
     private final Runnable longPressRunnable = new Runnable() {
         @Override
@@ -296,7 +317,10 @@ public class OriginalHomeView extends FrameLayout {
         label.setTextColor(Color.WHITE);
         label.setGravity(Gravity.CENTER_HORIZONTAL);
         label.setSingleLine(true);
+        label.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+        label.setTypeface(Typeface.create("sans-serif-condensed", Typeface.NORMAL));
         cell.addView(label);
+        cell.setOnTouchListener(pressFeedback);
         cell.setOnClickListener(click);
 
         cells.add(cell);

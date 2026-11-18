@@ -170,3 +170,11 @@ git commit -m "feat: show vehicle status only when the service is up"
 - 车型取 `com.incall.proxy.setting.SettingManager.getCurCarType()`，取不到时退回默认 `CHANGAN_S311_CARTYPE_10`
 
 实现：`app/src/main/java/com/android/launcherWT/home/CarFilters.java`，由 `DesktopEntries.source` 统一过滤（桌面与应用管理页同步生效）。
+
+## 深度对账与补齐（2026-11-18）
+
+- 未安装过滤：`DesktopEntries.source` 只保留 `queryIntentActivities(MAIN/LAUNCHER, setPackage)` 有结果、或显式 component 存在的白名单项，等价原版 `getActivityList` 的"装且可启动"语义。
+- 清单对齐：`taskAffinity=""`、`configChanges`（10 项同原版）、`resumeWhilePausing`（隐藏属性，aapt 接受）、`windowSoftInputMode=adjustPan`、`category MONKEY`、`application icon=@mipmap/ic_launcher_home`、`android:name=.LauncherApplication`（空实现，同原版）。
+- 应用名样式：`sans-serif-condensed`、`singleLine + marquee`，对齐 `@style/Icon`。
+- 点击反馈：cell 按下 alpha 0.65 / 抬起回 1，补 `BubbleTextView` 的按压态。
+- 不还原：`AppsConfig.setChangeUI` + `XmlUtils.parseXml` 的外部主题资源包（原版无调用方，死代码）；`TopRightView` 的 `MediaStatusView`（`initMediaStatusView()` 为空）。

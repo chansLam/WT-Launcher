@@ -1,6 +1,10 @@
 package com.android.launcherWT.home;
 
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 
 import com.android.launcherWT.core.DisplayOrder;
 import com.android.launcherWT.core.LaunchableApp;
@@ -43,6 +47,9 @@ public final class DesktopEntries {
             FavoriteCatalog.Entry entry = favorites.get(i);
             reserved.add(entry.packageName);
             if (CarFilters.hidden(entry.packageName)) {
+                continue;
+            }
+            if (!launchable(context.getPackageManager(), entry.packageName, entry.className)) {
                 continue;
             }
             items.add(new Item(
@@ -89,5 +96,24 @@ public final class DesktopEntries {
             result.add(byKey.get(ordered.get(i)));
         }
         return result;
+    }
+
+    /** The original lists only installed apps that expose a launcher activity. */
+    private static boolean launchable(PackageManager manager, String packageName, String className) {
+        Intent probe = new Intent(Intent.ACTION_MAIN);
+        probe.addCategory(Intent.CATEGORY_LAUNCHER);
+        probe.setPackage(packageName);
+        List<ResolveInfo> found = manager.queryIntentActivities(probe, 0);
+        if (found != null && !found.isEmpty()) {
+            return true;
+        }
+        if (className == null) {
+            return false;
+        }
+        try {
+            return manager.getActivityInfo(new ComponentName(packageName, className), 0) != null;
+        } catch (PackageManager.NameNotFoundException missing) {
+            return false;
+        }
     }
 }
