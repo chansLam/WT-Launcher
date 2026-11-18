@@ -195,3 +195,23 @@ git commit -m "feat: show vehicle status only when the service is up"
 - 每日轮换默认纳入新源（共 8 个：bing-zh / bing-en / wallhaven / zzzmh / peapix / todaybing / upx8 / yumus），单选面板新增 4 项。
 - UPX8 关键词搜索接入自定义搜索聚合（`content=<关键词>&count=3`），`ImageSearch.parseUpx8` 解析。
 - 新增 `core/AspectCrop`：按目标比例中心裁切。`HomeBackground.decode` 与 `WallpaperApplier.setBitmap` 都改为裁切后绘制/设置，修掉 1920×1080 图在 1920×720 屏上被拉伸的问题。
+
+## Android 4.4.2 TLS 加固（2026-11-18）
+
+实测四个新源的服务端链（openssl verify 对照 `res/raw/mozilla_cacert.pem`）：
+
+| 主机 | 叶子证书 | 链 | 协议 |
+|---|---|---|---|
+| peapix.com / img.peapix.com | ECDSA，Google Trust Services WE1 | 3 | TLS1.2 |
+| www.todaybing.com / webp.todaybing.com | ECDSA，Let's Encrypt YE1 | 4 | TLS1.2 |
+| wp.upx8.com | ECDSA，Let's Encrypt YE2 | 4 | TLS1.2 |
+| www.yumus.cn | RSA，TrustAsia DV TLS RSA CA 2025 | 3 | TLS1.2 |
+
+四个域名的链全部能用内置 Mozilla CA 集合验过（GTS R4、ISRG Root X1、TrustAsia G3/G4 都在），说明**系统 CA 库（4.4 没有这些根）不是问题，内置信任库才是关键**。
+
+改动：
+- `Tls12SocketFactory` 由"开启所有套件"改为按优先级挑 `ECDHE_AES-GCM → CHACHA20 → ECDHE_CBC`（4.4 不支持 ChaCha20 会自动跳过），协议顺序 TLS1.2 → 1.1 → 1.0。
+- 请求失败自动重试一次（4.4 偶发握手/会话复用失败）。
+- `logFailure()` 沿 cause 链打印，排查车机上失败原因时看 `BingClient` tag 即可。
+- 下载后先 `BitmapFactory` 探边界再采用，避免 4.4 解不了的 WebP 被当成壁纸发布。
+- 注意：四个域名的 http:// 全部 301 到 https，没有明文降级可用。

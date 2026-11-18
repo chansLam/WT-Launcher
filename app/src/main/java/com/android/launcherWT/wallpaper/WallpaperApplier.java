@@ -82,7 +82,7 @@ public final class WallpaperApplier {
                         continue;
                     }
                     File attempt = new File(dir, "daily.jpg.tmp");
-                    if (BingClient.download(context, pick.imageUrl, attempt)) {
+                    if (BingClient.download(context, pick.imageUrl, attempt) && decodable(attempt)) {
                         temp = attempt;
                         saved = pick;
                         break;
@@ -396,5 +396,16 @@ public final class WallpaperApplier {
             source.recycle();
         }
         return cropped;
+    }
+
+    /** WebP from some CDNs is unreadable on 4.4, so reject instead of publishing it. */
+    private static boolean decodable(File file) {
+        if (file == null || !file.isFile() || file.length() <= 0L) {
+            return false;
+        }
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(file.getAbsolutePath(), bounds);
+        return bounds.outWidth > 0 && bounds.outHeight > 0;
     }
 }

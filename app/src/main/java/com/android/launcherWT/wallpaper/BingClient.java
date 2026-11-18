@@ -54,7 +54,16 @@ public final class BingClient {
         return fetchText(context, url);
     }
 
+    /** One TLS hiccup on 4.4 should not lose the whole wallpaper; retry once. */
     public static String fetchText(Context context, String url) {
+        String body = fetchOnce(context, url);
+        if (body != null) {
+            return body;
+        }
+        return fetchOnce(context, url);
+    }
+
+    private static String fetchOnce(Context context, String url) {
         HttpURLConnection connection = null;
         InputStream input = null;
         try {
@@ -70,7 +79,7 @@ public final class BingClient {
             }
             return new String(body, Charset.forName("UTF-8"));
         } catch (Exception ex) {
-            Log.w("BingClient", "fetch failed " + url, ex);
+            logFailure("fetch", url, ex);
             return null;
         } finally {
             close(input);
@@ -79,6 +88,13 @@ public final class BingClient {
     }
 
     public static boolean download(Context context, String url, File destination) {
+        if (downloadOnce(context, url, destination)) {
+            return true;
+        }
+        return downloadOnce(context, url, destination);
+    }
+
+    private static boolean downloadOnce(Context context, String url, File destination) {
         HttpURLConnection connection = null;
         InputStream input = null;
         FileOutputStream output = null;
@@ -100,7 +116,7 @@ public final class BingClient {
             output.flush();
             return total > 0L;
         } catch (Exception ex) {
-            Log.w("BingClient", "download failed " + url + " " + ex);
+            logFailure("download", url, ex);
             return false;
         } finally {
             close(output);
@@ -253,6 +269,17 @@ public final class BingClient {
 
     private static final class Tls12SocketFactory extends SSLSocketFactory {
         private static final String TLS_12 = "TLSv1.2";
+        private static final String[] PREFERRED_CIPHERS = {
+                "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+                "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+                "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+                "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+                "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
+                "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+                "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+                "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+                "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+                "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA"};
         private final SSLSocketFactory delegate;
 
         Tls12SocketFactory(SSLSocketFactory delegate) {
@@ -312,13 +339,18 @@ public final class BingClient {
             return ssl;
         }
 
+        /**
+         * Android 4.4 keeps TLS 1.2 off by default and ships a 2010 era OpenSSL.
+         * Only advertise protocols and suites that host and device both support,
+         * preferring ECDHE AEAD so the modern CDNs of the wallpaper APIs negotiate.
+         */
         private void enableModernTls(SSLSocket socket) {
-            String[] protocols = pick(socket.getSupportedProtocols(), new String[] {TLS_12, "TLSv1.1"});
+            String[] protocols = pick(socket.getSupportedProtocols(), new String[] {TLS_12, "TLSv1.1", "TLSv1"});
             if (protocols.length > 0) {
                 socket.setEnabledProtocols(protocols);
             }
-            String[] ciphers = socket.getSupportedCipherSuites();
-            if (ciphers != null && ciphers.length > 0) {
+            String[] ciphers = pick(socket.getSupportedCipherSuites(), PREFERRED_CIPHERS);
+            if (ciphers.length > 0) {
                 socket.setEnabledCipherSuites(ciphers);
             }
         }
@@ -348,5 +380,19 @@ public final class BingClient {
             closeable.close();
         } catch (IOException ex) {
         }
+    }
+
+    /** Android 4.4 hides the real cause behind SSLException, so walk the chain. */
+    private static void logFailure(String what, String url, Exception failure) {
+        StringBuilder line = new StringBuilder(what).append(" failed ").append(url);
+        Throwable current = failure;
+        for (int depth = 0; current != null && depth < 4; depth++) {
+            line.append(" <- ").append(current.getClass().getSimpleName());
+            if (current.getMessage() != null) {
+                line.append(": ").append(current.getMessage());
+            }
+            current = current.getCause();
+        }
+        Log.w("BingClient", line.toString());
     }
 }
