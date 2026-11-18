@@ -12,6 +12,24 @@ android {
         versionName "1.8.17.23.release"
     }
 
+    // The car build keeps targetSdk 19; Android 13/14 emulators refuse to
+    // install anything under 23, so the avd flavor raises it and takes a
+    // separate applicationId so both can live on one device.
+    flavorDimensions "channel"
+
+    productFlavors {
+        car {
+            dimension "channel"
+            targetSdk 19
+        }
+        avd {
+            dimension "channel"
+            applicationIdSuffix ".avd"
+            versionNameSuffix "-avd"
+            targetSdk 33
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -20,14 +38,6 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-        }
-        // Emulator build: installs next to the car package so it can be tried on an AVD.
-        avd {
-            initWith debug
-            applicationIdSuffix ".avd"
-            versionNameSuffix "-avd"
-            signingConfig signingConfigs.debug
-            matchingFallbacks = ["debug"]
         }
     }
 

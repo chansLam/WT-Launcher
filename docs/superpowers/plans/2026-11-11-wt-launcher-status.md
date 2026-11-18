@@ -227,3 +227,9 @@ git commit -m "feat: show vehicle status only when the service is up"
 - 设置页新增「桌面设置」区：列数 4~7、行数 2~4、图标大小 64~160（SeekBar），改完返回桌面即生效（MainActivity.onResume → reload）。
 - 持久化落在 desktop.db 新表 `layout(id, columns, rows, icon_size)`，DB 版本升到 4，老库 upgrade 建表；DesktopState 抽象出 gridColumns/gridRows/iconSize。
 - OriginalHomeView 去掉写死的 5×3/PAGE_SIZE，改为按列数/行数均分 1920×720 有效区（pad 80/80/64/84），图标按设置尺寸居中，文字随图标缩放（0.85~1.5 倍）。
+
+## 构建变体
+- 改为 productFlavor 双通道：`car`（applicationId com.android.launcherWT，targetSdk 19，车机用）、`avd`（`.avd` 后缀，targetSdk 33，模拟器用）。
+- 原因：Android 13/14 的安装器拒绝 targetSdk < 23 的包（表现为 INSTALL_FAILED_INVALID_APK），AVD 包必须抬高 targetSdk；车机包保持 19。
+- 清单补 `QUERY_ALL_PACKAGES`（targetSdk ≥ 30 时查询已安装应用需要，API 19 上可忽略）。
+- 构建命令：车机 `./gradlew :core:test :app:assembleCarDebug`；模拟器 `./gradlew :app:assembleAvdDebug`（产物 app/build/outputs/apk/avd/debug/app-avd-debug.apk）。
