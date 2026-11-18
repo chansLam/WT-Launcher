@@ -29,6 +29,7 @@ import android.widget.Toast;
 import com.android.launcherWT.core.DailyFeeds;
 import com.android.launcherWT.core.ImageSearch;
 import com.android.launcherWT.core.LaunchableApp;
+import com.android.launcherWT.core.WallpaperCategory;
 import com.android.launcherWT.core.WallpaperMode;
 import com.android.launcherWT.home.CarFilters;
 import com.android.launcherWT.home.DesktopEntries;
@@ -85,6 +86,12 @@ public class DesktopSettingsActivity extends Activity {
     private TextView tabLayout;
     private TextView tabApps;
 
+    private LinearLayout recommendCategories;
+    private LinearLayout recommendResults;
+    private TextView recommendStatus;
+    private final AtomicInteger recommendGeneration = new AtomicInteger();
+    private String selectedCategory = WallpaperCategory.POPULAR;
+
     private LinearLayout previewGrid;
     private View previewArea;
     private TextView previewCaption;
@@ -135,6 +142,9 @@ public class DesktopSettingsActivity extends Activity {
         tabLayout = (TextView) findViewById(R.id.tab_layout);
         tabApps = (TextView) findViewById(R.id.tab_apps);
         previewArea = findViewById(R.id.preview_area);
+        recommendCategories = (LinearLayout) findViewById(R.id.recommend_categories);
+        recommendResults = (LinearLayout) findViewById(R.id.recommend_results);
+        recommendStatus = (TextView) findViewById(R.id.recommend_status);
         previewGrid = (LinearLayout) findViewById(R.id.preview_grid);
         previewCaption = (TextView) findViewById(R.id.preview_caption);
 
@@ -159,6 +169,7 @@ public class DesktopSettingsActivity extends Activity {
 
         bindDesktopLayout();
         bindWallpaper();
+        bindRecommends();
         bindApps();
         showMode();
         selectTab(0);
@@ -637,7 +648,7 @@ public class DesktopSettingsActivity extends Activity {
                             return;
                         }
                         status.setText("");
-                        showHits(hits);
+                        showHits(hits, results, status);
                     }
                 });
             }
@@ -659,22 +670,155 @@ public class DesktopSettingsActivity extends Activity {
         return hits;
     }
 
-    private void showHits(List<ImageSearch.Hit> hits) {
-        results.removeAllViews();
+    // ------------------------------------------------------- recommended wallpapers
+
+    private void bindRecommends() {
+        recommendCategories.removeAllViews();
+        List<WallpaperCategory> categories = WallpaperCategory.all();
+        for (int i = 0; i < categories.size(); i++) {
+            final WallpaperCategory category = categories.get(i);
+            TextView chip = new TextView(this);
+            chip.setText(categoryLabel(category.id));
+            chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            chip.setPadding(dp(12), dp(6), dp(12), dp(6));
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            params.rightMargin = dp(6);
+            chip.setLayoutParams(params);
+            chip.setTag(category.id);
+            chip.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    selectCategory(category);
+                }
+            });
+            recommendCategories.addView(chip);
+        }
+        selectCategory(categories.isEmpty() ? null : categories.get(0));
+    }
+
+    private String categoryLabel(String id) {
+        int res;
+        if (WallpaperCategory.LANDSCAPE.equals(id)) {
+            res = R.string.cat_landscape;
+        } else if (WallpaperCategory.CITY.equals(id)) {
+            res = R.string.cat_city;
+        } else if (WallpaperCategory.NIGHT.equals(id)) {
+            res = R.string.cat_night;
+        } else if (WallpaperCategory.ANIME.equals(id)) {
+            res = R.string.cat_anime;
+        } else if (WallpaperCategory.CAR.equals(id)) {
+            res = R.string.cat_car;
+        } else if (WallpaperCategory.ABSTRACT.equals(id)) {
+            res = R.string.cat_abstract;
+        } else {
+            res = R.string.cat_popular;
+        }
+        return getString(res);
+    }
+
+    private void styleChips() {
+        for (int i = 0; i < recommendCategories.getChildCount(); i++) {
+            View child = recommendCategories.getChildAt(i);
+            boolean on = selectedCategory != null && selectedCategory.equals(child.getTag());
+            child.setBackgroundColor(on ? 0x40FFFFFF : 0x14FFFFFF);
+            TextView chip = (TextView) child;
+            chip.setTextColor(on ? 0xFFFFFFFF : 0x88FFFFFF);
+            chip.setTypeface(android.graphics.Typeface.DEFAULT, on
+                    ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+        }
+    }
+
+    private void selectCategory(WallpaperCategory category) {
+        if (category == null) {
+            return;
+        }
+        selectedCategory = category.id;
+        styleChips();
+        fetchRecommends(category);
+    }
+
+    private void fetchRecommends(final WallpaperCategory category) {
+        final int generation = recommendGeneration.incrementAndGet();
+        recommendStatus.setText(R.string.recommend_loading);
+        recommendResults.removeAllViews();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                List<ImageSearch.Hit> hits = loadRecommends(category);
+                final List<ImageSearch.Hit> shown = hits;
+                main.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (generation != recommendGeneration.get() || isFinishing()) {
+                            return;
+                        }
+                        if (shown.isEmpty()) {
+                            recommendStatus.setText(R.string.recommend_empty);
+                            return;
+                        }
+                        recommendStatus.setText("");
+                        showHits(shown, recommendResults, recommendStatus);
+                    }
+                });
+            }
+        }, "wallpaper-recommend").start();
+    }
+
+    private List<ImageSearch.Hit> loadRecommends(WallpaperCategory category) {
+        String bingQuery = encode(category.bingQuery);
+        String bingHtml = BingClient.fetchText(this,
+                "https://www.bing.com/images/async?q=" + bingQuery
+                        + "&first=0&count=35&mmasync=1&adlt=strict"
+                        + "&qft=%2Bfilterui:aspect-wide%2Bfilterui:imagesize-large");
+        StringBuilder haven = new StringBuilder("https://wallhaven.cc/api/v1/search?");
+        if (category.wallhavenQuery.length() > 0) {
+            haven.append("q=").append(encode(category.wallhavenQuery)).append('&');
+        }
+        if (category.wallhavenCategories.length() > 0) {
+            haven.append("categories=").append(category.wallhavenCategories).append('&');
+        }
+        haven.append("purity=100&atleast=1920x720&ratios=16x9,21x9&sorting=toplist&topRange=1M");
+        String havenJson = BingClient.fetchText(this, haven.toString());
+        String upxJson = BingClient.fetchText(this,
+                "https://wp.upx8.com/api.php?format=json&content=" + encode(category.upx8Query) + "&count=6");
+
+        List<List<ImageSearch.Hit>> groups = new ArrayList<List<ImageSearch.Hit>>();
+        groups.add(ImageSearch.parseBing(bingHtml));
+        groups.add(ImageSearch.parseWallhaven(havenJson));
+        groups.add(ImageSearch.parseUpx8(upxJson));
+        return ImageSearch.mergeAll(groups);
+    }
+
+    private String encode(String text) {
+        if (text == null || text.length() == 0) {
+            return "";
+        }
+        try {
+            return URLEncoder.encode(text, "UTF-8");
+        } catch (Exception ex) {
+            return text;
+        }
+    }
+
+    private void showHits(List<ImageSearch.Hit> hits, LinearLayout container, TextView statusView) {
+        container.removeAllViews();
+        boolean wide = container == recommendResults;
         for (int i = 0; i < hits.size(); i++) {
             final ImageSearch.Hit hit = hits.get(i);
             final ImageView thumb = new ImageView(this);
-            int size = Math.round(120 * getResources().getDisplayMetrics().density);
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(size, size);
+            int width = dp(wide ? 116 : 120);
+            int height = dp(wide ? 66 : 120);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(width, height);
             params.rightMargin = Math.round(8 * getResources().getDisplayMetrics().density);
             thumb.setLayoutParams(params);
             thumb.setScaleType(ImageView.ScaleType.CENTER_CROP);
             thumb.setBackgroundColor(0x33FFFFFF);
-            results.addView(thumb);
+            container.addView(thumb);
             thumb.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    useRemote(hit);
+                    useRemote(hit, statusView);
                 }
             });
             String preview = ImageSearch.bingImage(hit.thumbUrl, 240, 240);
@@ -706,8 +850,8 @@ public class DesktopSettingsActivity extends Activity {
         }).start();
     }
 
-    private void useRemote(final ImageSearch.Hit hit) {
-        status.setText(R.string.wallpaper_saving);
+    private void useRemote(final ImageSearch.Hit hit, final TextView statusView) {
+        statusView.setText(R.string.wallpaper_saving);
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -721,12 +865,12 @@ public class DesktopSettingsActivity extends Activity {
                     @Override
                     public void run() {
                         if (!ok) {
-                            status.setText(R.string.wallpaper_unusable);
+                            statusView.setText(R.string.wallpaper_unusable);
                             return;
                         }
                         database.setCustomPath(dest.getAbsolutePath());
                         database.setWallpaperMode(WallpaperMode.CUSTOM);
-                        status.setText("");
+                        statusView.setText("");
                         showMode();
                         adjustingRadios = true;
                         wallpaperMode.check(R.id.mode_local);

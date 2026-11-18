@@ -352,6 +352,46 @@
                                 android:textColor="#B3FFFFFF"
                                 android:textSize="13sp" />
                         </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:text="@string/recommend_title"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <HorizontalScrollView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp">
+
+                            <LinearLayout
+                                android:id="@+id/recommend_categories"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal" />
+                        </HorizontalScrollView>
+
+                        <TextView
+                            android:id="@+id/recommend_status"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="#B3FFFFFF"
+                            android:textSize="13sp" />
+
+                        <HorizontalScrollView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp">
+
+                            <LinearLayout
+                                android:id="@+id/recommend_results"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal" />
+                        </HorizontalScrollView>
                     </LinearLayout>
                 </ScrollView>
             </LinearLayout>
