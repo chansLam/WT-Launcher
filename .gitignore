@@ -1,0 +1,12 @@
+.superpowers/
+docs/apk-dump/
+local.properties
+*.jks
+*.keystore
+
+# build outputs
+build/
+.gradle/
+app/build/
+core/build/
+platform-stubs/build/

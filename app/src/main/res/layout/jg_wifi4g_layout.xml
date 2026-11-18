@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+    <com.autopai.support.utils.WifiView
+        android:gravity="center_vertical"
+        android:layout_gravity="center_vertical"
+        android:id="@+id/toprightview_wifi"
+        android:visibility="gone"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/jg_top_right_view_icon_height"
+        android:layout_marginRight="@dimen/jg_top_left_icon_margin"/>
+    <com.autopai.support.utils.SignalView
+        android:gravity="center_vertical"
+        android:layout_gravity="center_vertical"
+        android:id="@+id/iv_signal"
+        android:visibility="visible"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/jg_top_right_view_icon_height"
+        android:src="@drawable/jg_ic_no_signal"/>
+</merge>

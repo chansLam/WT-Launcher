@@ -1,0 +1,40 @@
+  8 WTUtils.java ?
+  4 ZBHAirConditionImpl.java constant label of type int is not compatible with switch selector type
+  4 ThemeUtils.java common_color_selecter_classic
+  3 ZBHAirConditionImpl.java 不兼容的类型: Object无法转换为int
+  2 S311BluetoothImpl.java 二元运算符 '==' 的操作数类型错误
+  2 S311MuteImpl.java 不兼容的类型: Object无法转换为boolean
+  2 ZBHAirConditionImpl.java 不兼容的类型: Object无法转换为float
+  2 ConfigManager.java isLikeCAS201(CustomerId)
+  2 DialogUtils.java DimDialogTheme
+  2 DialogUtils.java imageViewIcon
+  2 ThemeUtils.java common_selecter_bg_classic
+  2 ThemeUtils.java common_color_selecter_sport
+  2 ThemeUtils.java common_color_selecter_simple
+  2 ThemeUtils.java common_color_selecter_btn_text_classic
+  2 ThemeUtils.java common_btn_classic
+  2 ThemeUtils.java common_flexible_tab_select
+  1 S311AirConditionImpl.java 无法从静态上下文中引用非静态 变量 index
+  1 ZBHAirConditionImpl.java 无法将类 Car中的方法 createCar应用到给定类型;
+  1 ZBHAirConditionImpl.java 不兼容的类型: Object无法转换为boolean
+  1 ZBHAirConditionImpl.java patterns in switch statements 是预览功能，默认情况下禁用。
+  1 ZBHDvrImpl.java 不兼容的类型: Object无法转换为int
+  1 ZBHDvrImpl.java 无法将类 Car中的方法 createCar应用到给定类型;
+  1 ZBHSignalImpl.java 无法将类 Car中的方法 createCar应用到给定类型;
+  1 BaseActivity.java common_loading
+  1 BaseActivity.java common_bg_theme_classic
+  1 BaseActivity.java common_bg_theme_sport
+  1 BaseActivity.java common_bg_theme_simple
+  1 BaseFragmentActivity.java common_loading
+  1 BaseThemeActivity.java common_bg_theme_classic
+  1 BaseThemeActivity.java common_bg_theme_sport
+  1 BaseThemeActivity.java common_bg_theme_simple
+  1 CommonUtil.java common_bg_theme_classic
+  1 CommonUtil.java common_bg_theme_sport
+  1 CommonUtil.java common_bg_theme_simple
+  1 ConfigManager.java isHaveTboxConfig()
+  1 ConfigManager.java isHave4GConfig()
+  1 ConfigManager.java getACConfigs()
+  1 ConfigManager.java isTencentUi()
+  1 ConfigManager.java isLikeS401(CustomerId)
+  1 DialogUtils.java common_loading

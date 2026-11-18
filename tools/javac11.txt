@@ -1,0 +1,72 @@
+esources
+> Task :platform-stubs:compileDebugJavaWithJavac
+> Task :platform-stubs:bundleLibCompileToJarDebug
+warn: removing resource com.android.launcherWT:string/application_name without required default value.
+
+> Task :app:processDebugResources
+
+> Task :app:compileDebugJavaWithJavac
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\autopai\support\proxy\ZBHProxy\ZBHAirConditionImpl.java:23: 错误: 在相应的 try 语句主体中不能抛出异常错误CarNotConnectedException
+            } catch (android.car.CarNotConnectedException e) {
+              ^
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:104: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.reflect.Method method = clazz.getMethod("getInstance", null);
+                                                                             ^
+  对于 varargs 调用, 应使用 Class
+  对于非 varargs 调用, 应使用 Class[], 这样也可以抑制此警告
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:105: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.Object obj = method.invoke(clazz, null);
+                                                        ^
+  对于 varargs 调用, 应使用 Object
+  对于非 varargs 调用, 应使用 Object[], 这样也可以抑制此警告
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:106: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.reflect.Method m = clazz.getMethod("getCurCarType", null);
+                                                                          ^
+  对于 varargs 调用, 应使用 Class
+  对于非 varargs 调用, 应使用 Class[], 这样也可以抑制此警告
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:107: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.Object carType = m.invoke(obj, null);
+                                                     ^
+  对于 varargs 调用, 应使用 Object
+  对于非 varargs 调用, 应使用 Object[], 这样也可以抑制此警告
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:120: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.reflect.Method method = clazz.getMethod("getInstance", null);
+                                                                             ^
+  对于 varargs 调用, 应使用 Class
+  对于非 varargs 调用, 应使用 Class[], 这样也可以抑制此警告
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:121: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.Object obj = method.invoke(clazz, null);
+                                                        ^
+  对于 varargs 调用, 应使用 Object
+  对于非 varargs 调用, 应使用 Object[], 这样也可以抑制此警告
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:122: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.reflect.Method m = clazz.getMethod("getOSVersion", null);
+                                                                         ^
+  对于 varargs 调用, 应使用 Class
+  对于非 varargs 调用, 应使用 Class[], 这样也可以抑制此警告
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:123: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.Object osVersion = m.invoke(obj, null);
+                                                       ^
+  对于 varargs 调用, 应使用 Object
+  对于非 varargs 调用, 应使用 Object[], 这样也可以抑制此警告
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些输入文件使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+1 个错误
+8 个警告
+
+> Task :app:compileDebugJavaWithJavac FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugJavaWithJavac'.
+> Compilation failed; see the compiler error output for details.
+
+* Try:
+> Run with --info option to get more log output.
+> Run with --scan to get full insights.
+
+BUILD FAILED in 24s
+22 actionable tasks: 6 executed, 16 up-to-date

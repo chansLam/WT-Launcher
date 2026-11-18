@@ -1,0 +1,152 @@
+# WT Launcher 状态栏 Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** 按车上的 `CustomerId` 显示空调、USB、记录仪、Wi-Fi、蓝牙、静音和移动信号；服务不可用时只隐藏对应图标。
+
+**Architecture:** 平台选择和“服务是否显示图标”是纯 Java，用假回调测试。`app` 里的 S311 与 ZBH 各自绑定规格中的服务名或广播。读不到已知车型时六个图标全部隐藏。调试包不绑定这些真实服务。
+
+**Tech Stack:** 与桌面计划相同。在桌面计划的主页顶栏完成之后执行。
+
+## Global Constraints
+
+- 状态栏靠右的顺序：空调、USB、行车记录仪、Wi-Fi、蓝牙、静音、移动信号、时钟。
+- 某一项的服务不可用时，只隐藏该项。
+- `CustomerId` 来自 `incall.setting.service`。不是 S311 也不是 ZBH 时，六个车辆图标全部隐藏，并把读到的 id 记到 logcat 标签 `LauncherWT`。
+- 空调服务名 `incall.aircondition.service`。车身信号服务名 `incall.canstatus.service`。
+- S311 记录仪听 coagent 状态广播。ZBH 仅当系统存在 `android.car.wt.WtCarDVRManager` 时使用它。
+- 蓝牙听 `android.bluetooth.adapter.action.CONNECTION_STATE_CHANGED` 和 `STATE_CHANGED`。
+- 状态栏显隐听 `com.incall.action.StatusBar.Show` 和 `com.incall.action.StatusBar.Hide`。
+- 绑定失败或断开后隐藏对应图标，每 5 秒重绑一次。桌面其他部分继续可用。
+- 调试包不绑定真实车辆服务。不实现 `com.incall.proxy` 服务端。
+
+---
+
+### Task 1: 车型选择
+
+**Files:**
+- Create: `core/src/main/java/com/android/launcherWT/core/status/VehiclePlatform.java`
+- Test: `core/src/test/java/com/android/launcherWT/core/status/VehiclePlatformTest.java`
+
+**Interfaces:**
+- Consumes: 无
+- Produces: `enum VehiclePlatform { S311, ZBH, UNKNOWN }` 和 `VehiclePlatform.fromCustomerId(String id)`。`id` 为 `S311` 或 `ZBH` 时返回对应值，其余包含 `null` 和空字符串都返回 `UNKNOWN`。
+
+- [ ] **Step 1: 写失败测试**
+
+`fromCustomerId("S311")` 为 `S311`，`"ZBH"` 为 `ZBH`，`"C301"`、`null`、`""` 都为 `UNKNOWN`。
+
+- [ ] **Step 2: 跑测试，确认失败**
+
+Run: `gradlew.bat :core:test --tests com.android.launcherWT.core.status.VehiclePlatformTest`
+
+Expected: FAIL
+
+- [ ] **Step 3: 写实现**
+
+只比较这两个精确字符串，不做大小写转换，避免把未知车型猜成其中一种。
+
+- [ ] **Step 4: 跑测试，确认通过**
+
+Run: `gradlew.bat :core:test --tests com.android.launcherWT.core.status.VehiclePlatformTest`
+
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bat
+git add core/src/main/java/com/android/launcherWT/core/status/VehiclePlatform.java core/src/test/java/com/android/launcherWT/core/status/VehiclePlatformTest.java
+git commit -m "feat: select S311 or ZBH without guessing"
+```
+
+---
+
+### Task 2: 单项显隐
+
+**Files:**
+- Create: `core/src/main/java/com/android/launcherWT/core/status/StatusIcons.java`
+- Test: `core/src/test/java/com/android/launcherWT/core/status/StatusIconsTest.java`
+
+**Interfaces:**
+- Consumes: `VehiclePlatform`
+- Produces: `StatusIcons`。方法 `void setAvailable(String name, boolean available)` 和 `boolean visible(String name)`。`name` 只接受 `air`、`usb`、`dvr`、`wifi`、`bluetooth`、`mute`、`signal`。平台为 `UNKNOWN` 时这七项 `visible` 都为假。平台已知时，只有 `setAvailable(name, true)` 的项为真。时钟不在这个类里，顶栏时钟始终显示。
+
+- [ ] **Step 1: 写失败测试**
+
+`UNKNOWN` 时 `air` 为不可见。`S311` 且 `setAvailable("air", true)` 后只有 `air` 可见，`dvr` 仍不可见。`setAvailable("air", false)` 后 `air` 消失。
+
+- [ ] **Step 2: 跑测试，确认失败**
+
+Run: `gradlew.bat :core:test --tests com.android.launcherWT.core.status.StatusIconsTest`
+
+Expected: FAIL
+
+- [ ] **Step 3: 写实现**
+
+默认全部不可用。`UNKNOWN` 在 `visible` 里直接返回假。
+
+- [ ] **Step 4: 跑测试，确认通过**
+
+Run: `gradlew.bat :core:test --tests com.android.launcherWT.core.status.StatusIconsTest`
+
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bat
+git add core/src/main/java/com/android/launcherWT/core/status core/src/test/java/com/android/launcherWT/core/status/StatusIconsTest.java
+git commit -m "feat: hide a status icon when its service is down"
+```
+
+---
+
+### Task 3: 接到顶栏
+
+**Files:**
+- Create: `app/src/main/java/com/android/launcherWT/status/StatusBarController.java`
+- Modify: `app/src/main/java/com/android/launcherWT/MainActivity.java`
+- Modify: `app/src/main/res/layout/activity_main.xml`
+
+**Interfaces:**
+- Consumes: `VehiclePlatform.fromCustomerId`，`StatusIcons`
+- Produces: 顶栏右侧七个 `ImageView` 加时钟。`StatusBarController.bind(Context)` 在 release 构建里绑定服务；`BuildConfig.DEBUG` 为真时不绑定，七个图标保持隐藏。
+
+- [ ] **Step 1: 画七个图标**
+
+顺序与规格一致。初始 `visibility` 为 `gone`。时钟用 `TextClock` 不可用在 API 19，改用 `TextView`，每 30 秒按 `HH:mm` 刷新。
+
+- [ ] **Step 2: 只在 release 绑定**
+
+`StatusBarController` 读取设置服务里的 customer id 字符串。`UNKNOWN` 时 `Log.i("LauncherWT", "customerId=" + id)` 并保持图标隐藏。S311 绑定 `incall.aircondition.service`、`incall.canstatus.service`，并注册 coagent 记录仪广播。ZBH 用 `Class.forName("android.car.wt.WtCarDVRManager")`，找不到类就把记录仪标为不可用。蓝牙注册规格中的两个系统广播。`StatusBar.Hide` 把整个右侧车辆区设为 `gone`，`StatusBar.Show` 再按 `StatusIcons` 恢复。
+
+`ServiceConnection.onServiceDisconnected` 把对应项设为不可用，并用 `Handler.postDelayed` 每 5000 毫秒调用一次原来的绑定方法，直到 `onServiceConnected`。
+
+- [ ] **Step 3: 编译**
+
+Run: `gradlew.bat :core:test --tests com.android.launcherWT.core.status.VehiclePlatformTest --tests com.android.launcherWT.core.status.StatusIconsTest :app:assembleDebug`
+
+Expected: 测试 PASS，`BUILD SUCCESSFUL`
+
+- [ ] **Step 4: Commit**
+
+```bat
+git add app/src/main/java/com/android/launcherWT/status app/src/main/java/com/android/launcherWT/MainActivity.java app/src/main/res/layout/activity_main.xml
+git commit -m "feat: show vehicle status only when the service is up"
+```
+
+---
+
+## 实际实现（2026-11-18）
+
+原计划是自绘七个 ImageView，实际改回原版控件，视觉与状态和 1.8.17.23 一致。
+
+- 新增 `app/src/main/java/com/android/launcherWT/status/StatusCluster.java`
+- 替换 `OriginalHomeView` 里手搓的静态顶栏（固定 `OFF` 文本、固定“录制中”图标、固定“无信号”图标）
+- 顺序与 `res/layout/jg_toprightview_layout.xml` 一致：空调、USB、记录仪、WiFi、蓝牙、静音、导航占位、信号、时钟
+- 每项单独 try/catch 构造：服务类缺失时只丢弃该项，其余照常工作，不 crash
+- 主题跟随 `Configuration.UI_MODE_NIGHT_*`，交给 `ResourceUtils.setCurTheme` 选 `day_` 资源
+- 监听 `com.incall.action.StatusBar.Hide/Show`，隐藏时记住各图标状态再恢复
+- 导航卡片沿用原布局的 `ViewStub`，保持收起
+- `AndroidManifest.xml` 补上原 APK 有的 `READ_PHONE_STATE`
+
+验证：`:core:test` 31 用例通过，`:app:assembleDebug` BUILD SUCCESSFUL。

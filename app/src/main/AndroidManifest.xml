@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
     <application
         android:allowBackup="false"
@@ -20,7 +21,7 @@
             android:exported="true"
             android:launchMode="singleInstance"
             android:screenOrientation="landscape"
-            android:theme="@android:style/Theme.DeviceDefault.Wallpaper.NoTitleBar"
+            android:theme="@style/HomeTheme"
             android:stateNotNeeded="true"
             android:clearTaskOnLaunch="true">
             <intent-filter android:priority="1">
@@ -36,5 +37,17 @@
             android:exported="false"
             android:screenOrientation="landscape"
             android:theme="@android:style/Theme.Holo.NoActionBar" />
+
+        <activity
+            android:name=".AppManageActivity"
+            android:exported="false"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Holo.NoActionBar.Fullscreen" />
+
+        <activity
+            android:name=".WallpaperActivity"
+            android:exported="false"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Holo.NoActionBar.Fullscreen" />
     </application>
 </manifest>

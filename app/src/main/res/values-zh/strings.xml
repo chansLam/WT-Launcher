@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="air_electric_level">档</string>
+    <string name="air_off">OFF</string>
+    <string name="am_time">上午</string>
+    <string name="pm_time">下午</string>
+    <string name="speech_content">语音正在启动中,请稍后再试</string>
+    <string name="safe_mode_error">安全模式下无法打开该应用</string>
+    <string name="usb_reading">USB读取中...</string>
+</resources>

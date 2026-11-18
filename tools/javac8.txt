@@ -1,0 +1,38 @@
+KINDS
+  41 找不到符号
+   4 不兼容的类型: Object无法转换为int
+   4 constant label of type int is not compatible with switch selector type Object
+   3 不兼容的类型: Object无法转换为boolean
+   3 无法将类 Car中的方法 createCar应用到给定类型;
+   2 二元运算符 '==' 的操作数类型错误
+   2 不兼容的类型: Object无法转换为float
+   1 无法从静态上下文中引用非静态 变量 index
+   1 patterns in switch statements 是预览功能，默认情况下禁用。
+FILES
+  12 com\autopai\support\proxy\ZBHProxy\ZBHAirConditionImpl.java
+   7 com\incall\apps\common\utils\ConfigManager.java
+   6 com\incall\apps\common\view\LowerRightView.java
+   4 com\incall\apps\common\view\AnalogClockCustomDrawable.java
+   3 com\wt\statistics\persistentdata\EventBeans.java
+   2 com\autopai\support\proxy\S311Proxy\S311BluetoothImpl.java
+   2 com\autopai\support\proxy\S311Proxy\S311MuteImpl.java
+   2 com\autopai\support\proxy\ZBHProxy\ZBHDvrImpl.java
+   2 com\incall\apps\common\utils\FunctionUtil.java
+   2 com\incall\apps\common\utils\VoiceUtil.java
+   2 com\wt\statistics\net\TokenBean.java
+   2 com\wt\statistics\persistentdata\ExceptionBean.java
+   1 com\autopai\support\proxy\S311Proxy\S311AirConditionImpl.java
+   1 com\autopai\support\proxy\ZBHProxy\ZBHSignalImpl.java
+   1 com\incall\apps\service\aircleaner\AirCleanManager.java
+   1 com\incall\apps\service\aiservice\AIServiceManager.java
+   1 com\incall\apps\service\callcenter\CallCenterManager.java
+   1 com\incall\apps\service\can\CarStatusManager.java
+   1 com\incall\apps\service\kuwoservice\KuwoManager.java
+   1 com\incall\apps\service\musicservice\MusicServiceManager.java
+   1 com\incall\apps\service\radioservice\RadioServiceManager.java
+   1 com\incall\apps\service\setting\SettingServiceManager.java
+   1 com\incall\apps\service\userservice\PersonlCenterManager.java
+   1 com\incall\apps\service\userservice\UserCenterLoadingView.java
+   1 com\incall\apps\spirit\elfservice\ELFServiceManager.java
+   1 com\wt\statistics\net\Result.java
+   1 com\wt\statistics\utils\WTUtils.java

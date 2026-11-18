@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<color name="common_flexible_tab_select">#00000000</color>
+<color name="common_simple_tab_select">#00000000</color>
+<color name="common_sport_tab_select">#00000000</color>
+    <color name="common_text_light">#FFFFFFFF</color>
+</resources>

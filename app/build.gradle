@@ -8,8 +8,8 @@ android {
         applicationId "com.android.launcherWT"
         minSdk 19
         targetSdk 19
-        versionCode 1
-        versionName "1.0"
+        versionCode 10817230
+        versionName "1.8.17.23.release"
     }
 
     compileOptions {
@@ -22,8 +22,17 @@ android {
             minifyEnabled false
         }
     }
+
+    lint {
+        checkReleaseBuilds false
+    }
 }
 
 dependencies {
     implementation project(":core")
+    implementation "com.android.support:appcompat-v7:27.1.1"
+    implementation "com.android.support:recyclerview-v7:27.1.1"
+    implementation "com.android.support.constraint:constraint-layout:1.1.3"
+    implementation "com.google.code.gson:gson:2.8.6"
+    compileOnly project(":platform-stubs")
 }

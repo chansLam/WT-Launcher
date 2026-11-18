@@ -12,7 +12,7 @@ public class DesktopStateTest {
     @Test
     public void memoryStartsDailyAndTogglesHiddenAndMode() {
         DesktopState state = DesktopState.memory();
-        assertEquals(WallpaperMode.DAILY, state.wallpaperMode());
+        assertEquals(WallpaperMode.DEFAULT, state.wallpaperMode());
 
         String key = new LaunchableApp("com.example", "com.example.Main", "Example").key();
         assertFalse(state.isHidden(key));
@@ -28,7 +28,7 @@ public class DesktopStateTest {
     }
 
     @Test
-    public void hidingDropsSavedOrderSoTheAppCanReturnAtTheEnd() {
+    public void hidingKeepsSavedOrder() {
         DesktopState state = DesktopState.memory();
         String kept = "com.example/com.example.Kept";
         String hidden = "com.example/com.example.Hidden";
@@ -36,8 +36,8 @@ public class DesktopStateTest {
 
         state.setHidden(hidden, true);
 
-        assertEquals(Arrays.asList(kept), state.displayOrder());
+        assertEquals(Arrays.asList(kept, hidden), state.displayOrder());
         state.setHidden(hidden, false);
-        assertEquals(Arrays.asList(kept), state.displayOrder());
+        assertEquals(Arrays.asList(kept, hidden), state.displayOrder());
     }
 }

@@ -1,0 +1,13 @@
+  42 方法 ordinal()
+   2 方法 isLikeC211(CustomerId)
+   1 方法 values()
+   1 方法 getCustomerId()
+   1 OTHER 不兼容的类型: Object无法转换为String
+   1 方法 isHaveTboxConfig()
+   1 方法 isHave4GConfig()
+   1 方法 getACConfigs()
+   1 方法 isLikeB211(CustomerId)
+   1 方法 isLikeC211EV(CustomerId)
+   1 方法 isLikeC301(CustomerId)
+   1 方法 isLikeS302(CustomerId)
+   1 方法 isLikeB311(CustomerId)

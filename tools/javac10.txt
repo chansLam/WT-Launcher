@@ -1,0 +1,106 @@
+:app:compileDebugJavaWithJavac
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\autopai\support\proxy\S311Proxy\S311MuteImpl.java:13: 错误: 不兼容的类型: Object无法转换为boolean
+                com.autopai.support.proxy.S311Proxy.S311MuteImpl.this.isMute = settingsInfo.isMute;
+                                                                                           ^
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\autopai\support\proxy\S311Proxy\S311MuteImpl.java:27: 错误: 不兼容的类型: Object无法转换为boolean
+            this.isMute = info.isMute;
+                              ^
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\autopai\support\proxy\ZBHProxy\ZBHAirConditionImpl.java:172: 错误: 不兼容的类型: Object无法转换为int
+        int areId = value.getAreaId();
+                                   ^
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\incall\apps\common\utils\ConfigManager.java:449: 错误: 找不到符号
+                byte[] functionActs = com.incall.proxy.ac.AirConditionManager.getInstance().getACConfigs();
+                                                                                           ^
+  符号:   方法 getACConfigs()
+  位置: 类 AirConditionManager
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\incall\apps\common\utils\FunctionUtil.java:73: 错误: 找不到符号
+        this.functionActs = com.incall.proxy.ac.AirConditionManager.getInstance().getACConfigs();
+                                                                                 ^
+  符号:   方法 getACConfigs()
+  位置: 类 AirConditionManager
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\incall\apps\common\utils\FunctionUtil.java:74: 错误: 找不到符号
+        this.type = com.incall.proxy.ac.AirConditionManager.getInstance().getAcType();
+                                                                         ^
+  符号:   方法 getAcType()
+  位置: 类 AirConditionManager
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\incall\apps\service\userservice\UserCenterLoadingView.java:69: 错误: 找不到符号
+        this.circlePaint.setColor(getResources().getColor(com.android.launcherWT.R.color.common_text_light));
+                                                                                        ^
+  符号:   变量 common_text_light
+  位置: 类 color
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\net\TokenBean.java:27: 错误: 找不到符号
+            e.printStackTrace();
+            ^
+  符号:   变量 e
+  位置: 类 TokenBean
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\persistentdata\EventBeans.java:177: 错误: 找不到符号
+                    e.printStackTrace();
+                    ^
+  符号:   变量 e
+  位置: 类 Events
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\persistentdata\ExceptionBean.java:53: 错误: 找不到符号
+            e.printStackTrace();
+            ^
+  符号:   变量 e
+  位置: 类 ExceptionBean
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:104: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.reflect.Method method = clazz.getMethod("getInstance", null);
+                                                                             ^
+  对于 varargs 调用, 应使用 Class
+  对于非 varargs 调用, 应使用 Class[], 这样也可以抑制此警告
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:105: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.Object obj = method.invoke(clazz, null);
+                                                        ^
+  对于 varargs 调用, 应使用 Object
+  对于非 varargs 调用, 应使用 Object[], 这样也可以抑制此警告
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:106: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.reflect.Method m = clazz.getMethod("getCurCarType", null);
+                                                                          ^
+  对于 varargs 调用, 应使用 Class
+  对于非 varargs 调用, 应使用 Class[], 这样也可以抑制此警告
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:107: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.Object carType = m.invoke(obj, null);
+                                                     ^
+  对于 varargs 调用, 应使用 Object
+  对于非 varargs 调用, 应使用 Object[], 这样也可以抑制此警告
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:120: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.reflect.Method method = clazz.getMethod("getInstance", null);
+                                                                             ^
+  对于 varargs 调用, 应使用 Class
+  对于非 varargs 调用, 应使用 Class[], 这样也可以抑制此警告
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:121: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.Object obj = method.invoke(clazz, null);
+                                                        ^
+  对于 varargs 调用, 应使用 Object
+  对于非 varargs 调用, 应使用 Object[], 这样也可以抑制此警告
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:122: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.reflect.Method m = clazz.getMethod("getOSVersion", null);
+                                                                         ^
+  对于 varargs 调用, 应使用 Class
+  对于非 varargs 调用, 应使用 Class[], 这样也可以抑制此警告
+C:\Users\v_xyzvzhang\wt-launcher\app\src\main\java\com\wt\statistics\utils\WTUtils.java:123: 警告: 最后一个参数使用了不准确的变量类型的 varargs 方法的非 varargs 调用; 
+            java.lang.Object osVersion = m.invoke(obj, null);
+                                                       ^
+  对于 varargs 调用, 应使用 Object
+  对于非 varargs 调用, 应使用 Object[], 这样也可以抑制此警告
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些输入文件使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+10 个错误
+8 个警告
+
+> Task :app:compileDebugJavaWithJavac FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugJavaWithJavac'.
+> Compilation failed; see the compiler error output for details.
+
+* Try:
+> Run with --info option to get more log output.
+> Run with --scan to get full insights.
+
+BUILD FAILED in 16s
+22 actionable tasks: 12 executed, 10 up-to-date

@@ -1,0 +1,29 @@
+KINDS
+57 方法
+24 变量
+1 类
+LOCS
+9 类型为Car的变量 mCar
+8 类型为AirConditionInfo的变量 info
+7 类型为CarHvacManager的变量 mHvacManager
+7 类型为CarPropertyValue的变量 value
+6 类型为BtPhoneManager的变量 mBtPhoneManager
+6 类 TboxManager
+4 类 SettingManager
+4 类 SourceID
+4 类 Utilities
+3 类型为AirConditionManager的变量 acMgr
+3 类 Car
+3 类型为WtCarDVRManager的变量 mDvrMgr
+2 类 XmlUtils
+2 类型为AirConditionInfo的变量 airConditionInfo
+2 类型为SettingsInfo的变量 settingsInfo
+2 类型为CarNotConnectedException的变量 e2
+2 类型为WtTBoxManager的变量 mWtTBoxManager
+2 类 CustomerId
+1 类 SourceManager
+1 程序包 com.autopai.support
+1 类型为CanManager的变量 mCanMgr
+1 类型为SettingsInfo的变量 info
+1 类型为CarNotConnectedException的变量 e
+1 类型为CarPropertyValue的变量 carPropertyValue

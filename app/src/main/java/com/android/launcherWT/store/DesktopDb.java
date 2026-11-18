@@ -15,7 +15,7 @@ import java.util.List;
 
 public class DesktopDb extends DesktopState {
     static final String NAME = "desktop.db";
-    private static final int VERSION = 2;
+    private static final int VERSION = 3;
     private static final int WALLPAPER_ID = 1;
 
     private final Context context;
@@ -74,7 +74,7 @@ public class DesktopDb extends DesktopState {
     @Override
     public void setWallpaperMode(WallpaperMode mode) {
         WallpaperRow row = readWallpaper();
-        writeWallpaper(mode, row.customPath, row.dailyStartdate);
+        writeWallpaper(mode, row.customPath, row.dailyStartdate, row.dailySource);
     }
 
     @Override
@@ -85,7 +85,7 @@ public class DesktopDb extends DesktopState {
     @Override
     public void setCustomPath(String path) {
         WallpaperRow row = readWallpaper();
-        writeWallpaper(row.mode, path, row.dailyStartdate);
+        writeWallpaper(row.mode, path, row.dailyStartdate, row.dailySource);
     }
 
     @Override
@@ -96,7 +96,18 @@ public class DesktopDb extends DesktopState {
     @Override
     public void setDailyStartdate(String date) {
         WallpaperRow row = readWallpaper();
-        writeWallpaper(row.mode, row.customPath, date);
+        writeWallpaper(row.mode, row.customPath, date, row.dailySource);
+    }
+
+    @Override
+    public String dailySource() {
+        return readWallpaper().dailySource;
+    }
+
+    @Override
+    public void setDailySource(String source) {
+        WallpaperRow row = readWallpaper();
+        writeWallpaper(row.mode, row.customPath, row.dailyStartdate, source);
     }
 
     private void writeHidden(SQLiteDatabase db, String key, boolean hidden) {
@@ -104,7 +115,6 @@ public class DesktopDb extends DesktopState {
             ContentValues values = new ContentValues();
             values.put("component_key", key);
             db.insertWithOnConflict("hidden", null, values, SQLiteDatabase.CONFLICT_REPLACE);
-            db.delete("app_order", "component_key=?", new String[] {key});
         } else {
             db.delete("hidden", "component_key=?", new String[] {key});
         }
@@ -195,7 +205,7 @@ public class DesktopDb extends DesktopState {
         WallpaperRow row = new WallpaperRow();
         Cursor cursor = db.query(
                 "wallpaper",
-                new String[] {"mode", "custom_path", "daily_startdate"},
+                new String[] {"mode", "custom_path", "daily_startdate", "daily_source"},
                 "id=?",
                 new String[] {Integer.toString(WALLPAPER_ID)},
                 null,
@@ -215,25 +225,28 @@ public class DesktopDb extends DesktopState {
             }
             row.customPath = cursor.getString(1);
             row.dailyStartdate = cursor.getString(2);
+            row.dailySource = cursor.getString(3);
             return row;
         } finally {
             cursor.close();
         }
     }
 
-    private void writeWallpaper(WallpaperMode mode, String customPath, String dailyStartdate) {
+    private void writeWallpaper(WallpaperMode mode, String customPath, String dailyStartdate, String dailySource) {
         ContentValues values = new ContentValues();
         values.put("id", WALLPAPER_ID);
         values.put("mode", mode.name());
         values.put("custom_path", customPath);
         values.put("daily_startdate", dailyStartdate);
+        values.put("daily_source", dailySource);
         open().insertWithOnConflict("wallpaper", null, values, SQLiteDatabase.CONFLICT_REPLACE);
     }
 
     private static final class WallpaperRow {
-        private WallpaperMode mode = WallpaperMode.DAILY;
+        private WallpaperMode mode = WallpaperMode.DEFAULT;
         private String customPath;
         private String dailyStartdate;
+        private String dailySource;
     }
 
     private static final class Helper extends SQLiteOpenHelper {
@@ -245,7 +258,7 @@ public class DesktopDb extends DesktopState {
         public void onCreate(SQLiteDatabase db) {
             db.execSQL("CREATE TABLE hidden(component_key TEXT PRIMARY KEY)");
             db.execSQL(
-                    "CREATE TABLE wallpaper(id INTEGER PRIMARY KEY, mode TEXT, custom_path TEXT, daily_startdate TEXT)");
+                    "CREATE TABLE wallpaper(id INTEGER PRIMARY KEY, mode TEXT, custom_path TEXT, daily_startdate TEXT, daily_source TEXT)");
             db.execSQL(
                     "CREATE TABLE app_order(component_key TEXT PRIMARY KEY, position INTEGER NOT NULL)");
         }
@@ -255,6 +268,9 @@ public class DesktopDb extends DesktopState {
             if (oldVersion < 2) {
                 db.execSQL(
                         "CREATE TABLE IF NOT EXISTS app_order(component_key TEXT PRIMARY KEY, position INTEGER NOT NULL)");
+            }
+            if (oldVersion < 3) {
+                db.execSQL("ALTER TABLE wallpaper ADD COLUMN daily_source TEXT");
             }
         }
     }

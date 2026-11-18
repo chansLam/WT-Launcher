@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.autopai.support.view.TopLinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:gravity="center_vertical"
+    android:layout_gravity="center_vertical"
+    android:orientation="vertical"
+    android:id="@+id/iv_container"
+    android:visibility="gone"
+    android:layout_width="wrap_content"
+    android:layout_height="@dimen/jg_top_right_view_icon_height"/>

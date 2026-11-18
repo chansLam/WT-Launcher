@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:background="@drawable/ic_widgets_shadow"
+    android:paddingLeft="@dimen/widgets_shadow_padding_left"
+    android:paddingTop="@dimen/widgets_shadow_padding_top"
+    android:paddingRight="@dimen/widgets_shadow_padding_right"
+    android:paddingBottom="@dimen/widgets_shadow_padding_bottom"
+    android:layout_width="376dp"
+    android:layout_height="349dp">
+    <com.android.launcherWT.RoundAngleFrameLayout
+        android:layout_gravity="center"
+        android:layout_width="360dp"
+        android:layout_height="333dp">
+        <TextureView
+            android:layout_gravity="center"
+            android:id="@+id/map_texture_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+        <ImageView
+            android:id="@+id/iv_loading"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/ic_loading_view_navi"
+            android:scaleType="centerCrop"/>
+    </com.android.launcherWT.RoundAngleFrameLayout>
+</FrameLayout>

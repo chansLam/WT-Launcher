@@ -22,6 +22,10 @@ public abstract class DesktopState {
 
     public abstract void setDailyStartdate(String date);
 
+    public abstract String dailySource();
+
+    public abstract void setDailySource(String source);
+
     public abstract List<String> displayOrder();
 
     public abstract void setDisplayOrder(List<String> keys);
@@ -33,9 +37,10 @@ public abstract class DesktopState {
     private static final class Memory extends DesktopState {
         private final Set<String> hidden = new HashSet<String>();
         private final List<String> order = new ArrayList<String>();
-        private WallpaperMode mode = WallpaperMode.DAILY;
+        private WallpaperMode mode = WallpaperMode.DEFAULT;
         private String customPath;
         private String dailyStartdate;
+        private String dailySource;
 
         @Override
         public boolean isHidden(String key) {
@@ -46,7 +51,6 @@ public abstract class DesktopState {
         public void setHidden(String key, boolean hidden) {
             if (hidden) {
                 this.hidden.add(key);
-                order.remove(key);
             } else {
                 this.hidden.remove(key);
             }
@@ -99,6 +103,16 @@ public abstract class DesktopState {
         @Override
         public void setDailyStartdate(String date) {
             this.dailyStartdate = date;
+        }
+
+        @Override
+        public String dailySource() {
+            return dailySource;
+        }
+
+        @Override
+        public void setDailySource(String source) {
+            this.dailySource = source;
         }
     }
 }

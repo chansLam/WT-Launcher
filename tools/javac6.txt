@@ -1,0 +1,28 @@
+KINDS
+  68 找不到符号
+   6 不兼容的类型: Object无法转换为int
+   6 不兼容的类型: Object无法转换为float
+   4 constant label of type int is not compatible with switch selector type Object
+   3 不兼容的类型: Object无法转换为boolean
+   3 无法将类 Car中的方法 createCar应用到给定类型;
+   2 不兼容的类型: Object无法转换为String
+   2 不兼容的类型: Object无法转换为AirConditionInfo
+   2 二元运算符 '==' 的操作数类型错误
+   1 二元运算符 '>' 的操作数类型错误
+   1 二元运算符 '!=' 的操作数类型错误
+   1 不兼容的类型: Object无法转换为SettingsInfo
+   1 patterns in switch statements 是预览功能，默认情况下禁用。
+FILES
+  55 com\incall\apps\common\utils\ConfigManager.java
+  12 com\autopai\support\proxy\S311Proxy\S311AirConditionImpl.java
+  12 com\autopai\support\proxy\ZBHProxy\ZBHAirConditionImpl.java
+   4 com\incall\apps\common\BaseActivity.java
+   3 com\autopai\support\proxy\S311Proxy\S311MuteImpl.java
+   3 com\incall\apps\common\BaseThemeActivity.java
+   3 com\incall\apps\common\utils\CommonUtil.java
+   2 com\autopai\support\proxy\S311Proxy\S311BluetoothImpl.java
+   2 com\autopai\support\proxy\ZBHProxy\ZBHDvrImpl.java
+   1 com\autopai\applist\view\AppsContentView.java
+   1 com\autopai\support\utils\MediaStatusView.java
+   1 com\autopai\support\proxy\ZBHProxy\ZBHSignalImpl.java
+   1 com\incall\apps\common\BaseFragmentActivity.java

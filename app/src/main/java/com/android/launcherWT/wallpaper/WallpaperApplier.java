@@ -9,13 +9,18 @@ import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.widget.Toast;
 
-import com.android.launcherWT.core.BingDailyImage;
+import com.android.launcherWT.core.DailyFeeds;
+import com.android.launcherWT.core.DailyPick;
+import com.android.launcherWT.core.ImageSearch;
 import com.android.launcherWT.core.WallpaperMode;
 import com.android.launcherWT.core.WallpaperRules;
 import com.android.launcherWT.store.DesktopDb;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
 
 public final class WallpaperApplier {
     private static final Object FILE_LOCK = new Object();
@@ -50,44 +55,77 @@ public final class WallpaperApplier {
             if (database.wallpaperMode() != WallpaperMode.DAILY) {
                 return false;
             }
-            BingDailyImage image = BingDailyImage.parse(BingClient.fetchJson(BingClient.DAILY_URL));
-            String remote = image == null ? null : image.startdate;
-            boolean download = WallpaperRules.shouldDownload(
-                    database.wallpaperMode(), database.dailyStartdate(), remote);
+            String requested = database.dailySource();
+            boolean explicit = requested != null && requested.length() > 0;
+            List<DailyPick> picks = explicit
+                    ? java.util.Collections.singletonList(loadSource(context, requested))
+                    : loadDaily(context);
+            DailyPick chosen = DailyFeeds.select(picks, explicit ? requested : null, dayOfYear());
+            boolean needsDownload = chosen != null && WallpaperRules.shouldDownload(
+                    database.wallpaperMode(), database.dailyStartdate(), chosen.key);
             File temp = null;
-            boolean written = false;
-            if (download && image != null) {
+            DailyPick saved = null;
+            if (needsDownload) {
                 File dir = wallpaperDir(context);
                 if (dir == null) {
                     notifyNotUpdated(context);
                     return false;
                 }
-                temp = new File(dir, "daily.jpg.tmp");
-                written = BingClient.download(image.imageUrl, temp);
+                int start = indexOf(picks, chosen);
+                for (int n = 0; n < picks.size(); n++) {
+                    if (explicit && n > 0) {
+                        break;
+                    }
+                    DailyPick pick = picks.get((start + n) % picks.size());
+                    if (pick == null || !WallpaperRules.shouldDownload(
+                            WallpaperMode.DAILY, database.dailyStartdate(), pick.key)) {
+                        continue;
+                    }
+                    File attempt = new File(dir, "daily.jpg.tmp");
+                    if (BingClient.download(context, pick.imageUrl, attempt)) {
+                        temp = attempt;
+                        saved = pick;
+                        break;
+                    }
+                    deleteQuietly(attempt);
+                }
             }
             synchronized (STATE_LOCK) {
                 if (database.wallpaperMode() != WallpaperMode.DAILY) {
                     deleteQuietly(temp);
                     return false;
                 }
-                if (image == null) {
+                if (!needsDownload || chosen == null) {
+                    deleteQuietly(temp);
+                    if (explicit && chosen == null) {
+                        notifyNotUpdated(context);
+                        return false;
+                    }
+                    if (!applyCached) {
+                        return false;
+                    }
+                    return applyCachedDaily(context);
+                }
+                if (!WallpaperRules.shouldDownload(
+                        database.wallpaperMode(), database.dailyStartdate(), chosen.key)) {
                     deleteQuietly(temp);
                     if (!applyCached) {
                         return false;
                     }
                     return applyCachedDaily(context);
                 }
-                boolean stillDownload = WallpaperRules.shouldDownload(
-                        database.wallpaperMode(), database.dailyStartdate(), image.startdate);
-                if (!stillDownload) {
+                String current = database.dailySource();
+                if (explicit && !requested.equals(current)) {
                     deleteQuietly(temp);
-                    if (!applyCached) {
-                        return false;
-                    }
-                    return applyCachedDaily(context);
+                    return false;
+                }
+                if (!explicit && current != null && current.length() > 0 && saved != null
+                        && !current.equals(saved.source)) {
+                    deleteQuietly(temp);
+                    return false;
                 }
                 File dest = dailyFile(context);
-                if (!written || !publish(temp, dest)) {
+                if (saved == null || !publish(temp, dest)) {
                     deleteQuietly(temp);
                     notifyNotUpdated(context);
                     return false;
@@ -105,11 +143,82 @@ public final class WallpaperApplier {
                 }
                 deleteBackup(dest);
                 if (database.wallpaperMode() == WallpaperMode.DAILY) {
-                    database.setDailyStartdate(image.startdate);
+                    if (database.dailySource() == null || database.dailySource().length() == 0) {
+                        database.setDailySource(saved.source);
+                    }
+                    database.setDailyStartdate(saved.key);
+                    android.util.Log.i("WallpaperDaily", "saved " + saved.key);
                 }
                 return true;
             }
         }
+    }
+
+    private static int indexOf(List<DailyPick> picks, DailyPick chosen) {
+        for (int i = 0; i < picks.size(); i++) {
+            if (picks.get(i) == chosen) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    private static DailyPick loadSource(Context context, String source) {
+        if (DailyFeeds.BING_ZH.equals(source)) {
+            return DailyFeeds.fromBing(BingClient.fetchJson(context, BingClient.DAILY_URL), DailyFeeds.BING_ZH);
+        }
+        if (DailyFeeds.BING_EN.equals(source)) {
+            return DailyFeeds.fromBing(BingClient.fetchJson(context, BingClient.DAILY_URL_EN), DailyFeeds.BING_EN);
+        }
+        if (DailyFeeds.WALLHAVEN.equals(source)) {
+            return DailyFeeds.fromWallhaven(BingClient.fetchJson(context, BingClient.DAILY_WALLHAVEN));
+        }
+        if (DailyFeeds.ZZZMH.equals(source)) {
+            return zzzmhDaily(context);
+        }
+        return null;
+    }
+
+    private static List<DailyPick> loadDaily(Context context) {
+        List<DailyPick> picks = new ArrayList<DailyPick>();
+        addPick(picks, loadSource(context, DailyFeeds.BING_ZH));
+        addPick(picks, loadSource(context, DailyFeeds.BING_EN));
+        addPick(picks, loadSource(context, DailyFeeds.WALLHAVEN));
+        addPick(picks, loadSource(context, DailyFeeds.ZZZMH));
+        StringBuilder names = new StringBuilder();
+        for (int i = 0; i < picks.size(); i++) {
+            if (names.length() > 0) {
+                names.append(',');
+            }
+            names.append(picks.get(i).key);
+        }
+        android.util.Log.i("WallpaperDaily", "picks " + names);
+        return picks;
+    }
+
+    private static DailyPick zzzmhDaily(Context context) {
+        List<ImageSearch.ZzzCard> cards = ImageSearch.parseZzzmh(
+                BingClient.fetchText(context, "https://bz.zzzmh.cn/gallery?r=ultra"));
+        for (int i = 0; i < cards.size() && i < 3; i++) {
+            ImageSearch.ZzzCard card = cards.get(i);
+            String page = BingClient.fetchText(context,
+                    "https://bz.zzzmh.cn/wallpaper/" + card.id + "?r=ultra");
+            ImageSearch.Hit hit = ImageSearch.parseZzzmhDetail(page, card.thumbUrl);
+            if (hit != null) {
+                return DailyFeeds.fromZzzmh(card.id, hit.fullUrl);
+            }
+        }
+        return null;
+    }
+
+    private static void addPick(List<DailyPick> picks, DailyPick pick) {
+        if (pick != null) {
+            picks.add(pick);
+        }
+    }
+
+    private static int dayOfYear() {
+        return Calendar.getInstance().get(Calendar.DAY_OF_YEAR);
     }
 
     private static boolean applyCachedDaily(Context context) {
@@ -230,7 +339,7 @@ public final class WallpaperApplier {
         return null;
     }
 
-    private static File dailyFile(Context context) {
+    public static File dailyFile(Context context) {
         return new File(context.getFilesDir(), "wallpaper/daily.jpg");
     }
 

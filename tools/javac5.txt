@@ -1,0 +1,13 @@
+C:\Users\v_xyzvzhang\wt-launcher\platform-stubs\src\main\java\android\car\Car.java:7: 错误: 找不到符号
+  符号:   类 Context
+C:\Users\v_xyzvzhang\wt-launcher\platform-stubs\src\main\java\android\car\Car.java:7: 错误: 找不到符号
+  符号:   类 ServiceConnection
+C:\Users\v_xyzvzhang\wt-launcher\platform-stubs\src\main\java\android\car\hardware\hvac\CarHvacManager.java:8: 错误: 找不到符号
+  符号:   类 HvacEventCallback
+C:\Users\v_xyzvzhang\wt-launcher\platform-stubs\src\main\java\android\car\hardware\hvac\CarHvacManager.java:12: 错误: 找不到符号
+  符号:   类 HvacEventCallback
+C:\Users\v_xyzvzhang\wt-launcher\platform-stubs\src\main\java\com\incall\proxy\ac\AirConditionManager.java:8: 错误: 找不到符号
+  符号:   类 AirConditionListener
+C:\Users\v_xyzvzhang\wt-launcher\platform-stubs\src\main\java\com\incall\proxy\ac\AirConditionManager.java:10: 错误: 找不到符号
+  符号:   类 AirConditionListener
+6 个错误

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<item type="id" name="buttonDialogLeft"/>
+<item type="id" name="buttonDialogRight"/>
+<item type="id" name="imageViewIcon"/>
+<item type="id" name="linearLayoutClickArea"/>
+<item type="id" name="textViewMsg"/>
+<item type="id" name="textViewToastMsg"/>
+<item type="id" name="toast_layout_text"/>
+</resources>
