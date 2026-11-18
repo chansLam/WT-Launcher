@@ -111,7 +111,35 @@
                         android:text="@string/wallpaper_source_zzzmh"
                         android:textColor="#FFFFFF"
                         android:textSize="16sp" />
-                </RadioGroup>
+
+                    <RadioButton
+                        android:id="@+id/source_peapix"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:text="@string/wallpaper_source_peapix"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp" />
+                    <RadioButton
+                        android:id="@+id/source_todaybing"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:text="@string/wallpaper_source_todaybing"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp" />
+                    <RadioButton
+                        android:id="@+id/source_upx8"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:text="@string/wallpaper_source_upx8"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp" />
+                    <RadioButton
+                        android:id="@+id/source_yumus"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:text="@string/wallpaper_source_yumus"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp" />                </RadioGroup>
 
                 <TextView
                     android:id="@+id/daily_status"

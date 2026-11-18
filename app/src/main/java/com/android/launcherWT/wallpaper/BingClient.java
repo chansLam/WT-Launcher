@@ -38,6 +38,13 @@ public final class BingClient {
     public static final String DAILY_WALLHAVEN =
             "https://wallhaven.cc/api/v1/search?sorting=toplist&topRange=1d&purity=100"
                     + "&atleast=1920x720&ratios=16x9,21x9";
+    public static final String PEAPIX_FEED = "https://peapix.com/bing/feed";
+    public static final String TODAYBING_TODAY =
+            "https://www.todaybing.com/api/v1/today?formate=json&size=fhd";
+    public static final String UPX8_RANDOM =
+            "https://wp.upx8.com/api.php?format=json&resolution=1920x1080&count=3";
+    public static final String YUMUS_BING = "https://www.yumus.cn/api/?brand=bing&ua=pc";
+
     private static final int TIMEOUT_MS = 10000;
 
     private BingClient() {

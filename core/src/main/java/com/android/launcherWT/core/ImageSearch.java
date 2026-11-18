@@ -417,4 +417,30 @@ public final class ImageSearch {
         }
         return url.toString().replace("\\u0026", "&");
     }
+
+    /** UP.UPX8 keyword search: flat JSON array with url and title per item. */
+    public static List<Hit> parseUpx8(String json) {
+        List<Hit> hits = new ArrayList<Hit>();
+        if (json == null) {
+            return hits;
+        }
+        int from = 0;
+        while (hits.size() < 6) {
+            int at = json.indexOf("\"url\":\"", from);
+            if (at < 0) {
+                break;
+            }
+            int start = at + 7;
+            int end = json.indexOf(34, start);
+            if (end < 0) {
+                break;
+            }
+            String url = json.substring(start, end).replace("\\/", "/");
+            from = end;
+            if (url.startsWith("http")) {
+                hits.add(new Hit(url, url));
+            }
+        }
+        return hits;
+    }
 }

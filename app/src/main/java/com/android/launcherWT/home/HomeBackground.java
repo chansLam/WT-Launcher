@@ -70,6 +70,25 @@ public final class HomeBackground {
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inSampleSize = BitmapSample.of(
                 bounds.outWidth, bounds.outHeight, metrics.widthPixels, metrics.heightPixels);
-        return BitmapFactory.decodeFile(file.getAbsolutePath(), options);
+        Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath(), options);
+        return crop(bitmap, metrics.widthPixels, metrics.heightPixels);
+    }
+
+    /** Fill the 1920×720 board by cropping instead of stretching. */
+    private static Bitmap crop(Bitmap source, int targetWidth, int targetHeight) {
+        if (source == null) {
+            return null;
+        }
+        int[] rect = com.android.launcherWT.core.AspectCrop.rect(
+                source.getWidth(), source.getHeight(), targetWidth, targetHeight);
+        if (rect[0] == 0 && rect[1] == 0
+                && rect[2] == source.getWidth() && rect[3] == source.getHeight()) {
+            return source;
+        }
+        Bitmap cropped = Bitmap.createBitmap(source, rect[0], rect[1], rect[2], rect[3]);
+        if (cropped != source) {
+            source.recycle();
+        }
+        return cropped;
     }
 }

@@ -178,6 +178,18 @@ public class WallpaperActivity extends Activity {
         if (checkedId == R.id.source_zzzmh) {
             return DailyFeeds.ZZZMH;
         }
+        if (checkedId == R.id.source_peapix) {
+            return DailyFeeds.PEAPIX;
+        }
+        if (checkedId == R.id.source_todaybing) {
+            return DailyFeeds.TODAYBING;
+        }
+        if (checkedId == R.id.source_upx8) {
+            return DailyFeeds.UPX8;
+        }
+        if (checkedId == R.id.source_yumus) {
+            return DailyFeeds.YUMUS;
+        }
         return null;
     }
 
@@ -193,6 +205,18 @@ public class WallpaperActivity extends Activity {
         }
         if (DailyFeeds.ZZZMH.equals(source)) {
             return R.id.source_zzzmh;
+        }
+        if (DailyFeeds.PEAPIX.equals(source)) {
+            return R.id.source_peapix;
+        }
+        if (DailyFeeds.TODAYBING.equals(source)) {
+            return R.id.source_todaybing;
+        }
+        if (DailyFeeds.UPX8.equals(source)) {
+            return R.id.source_upx8;
+        }
+        if (DailyFeeds.YUMUS.equals(source)) {
+            return R.id.source_yumus;
         }
         return -1;
     }
@@ -243,15 +267,19 @@ public class WallpaperActivity extends Activity {
                                 + "&purity=100&atleast=1920x720&ratios=16x9,21x9&sorting=relevance");
                 String zzzHtml = BingClient.fetchText(WallpaperActivity.this,
                         "https://bz.zzzmh.cn/search?q=" + encoded + "&r=ultra");
+                String upxJson = BingClient.fetchText(WallpaperActivity.this,
+                        "https://wp.upx8.com/api.php?format=json&content=" + encoded + "&count=3");
                 List<ImageSearch.Hit> bingHits = ImageSearch.parseBing(bingHtml);
                 List<ImageSearch.Hit> havenHits = ImageSearch.parseWallhaven(wallhaven);
                 List<ImageSearch.Hit> zzzHits = zzzmhHits(zzzHtml);
+                List<ImageSearch.Hit> upxHits = ImageSearch.parseUpx8(upxJson);
                 android.util.Log.i("WallpaperSearch", "bing=" + bingHits.size()
                         + " wallhaven=" + havenHits.size() + " zzzmh=" + zzzHits.size());
                 List<List<ImageSearch.Hit>> groups = new ArrayList<List<ImageSearch.Hit>>();
                 groups.add(bingHits);
                 groups.add(havenHits);
                 groups.add(zzzHits);
+                groups.add(upxHits);
                 final List<ImageSearch.Hit> hits = ImageSearch.mergeAll(groups);
                 main.post(new Runnable() {
                     @Override

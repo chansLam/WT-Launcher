@@ -7,6 +7,10 @@ public final class DailyFeeds {
     public static final String BING_EN = "bing-en";
     public static final String WALLHAVEN = "wallhaven";
     public static final String ZZZMH = "zzzmh";
+    public static final String PEAPIX = "peapix";
+    public static final String TODAYBING = "todaybing";
+    public static final String UPX8 = "upx8";
+    public static final String YUMUS = "yumus";
 
     private DailyFeeds() {
     }
@@ -96,5 +100,66 @@ public final class DailyFeeds {
             return null;
         }
         return json.substring(start, end);
+    }
+
+    /** Peapix bing feed: 1920px jpg plus date, title and copyright in JSON. */
+    public static DailyPick fromPeapix(String json) {
+        String full = quotedValue(json, "fullUrl");
+        String date = quotedValue(json, "date");
+        if (full == null || date == null) {
+            return null;
+        }
+        return new DailyPick(PEAPIX, PEAPIX + ":" + date, unescape(full));
+    }
+
+    /** TodayBing /api/v1/today?formate=json wraps the image in a data object. */
+    public static DailyPick fromTodayBing(String json) {
+        String image = quotedValue(json, "image");
+        String date = quotedValue(json, "date");
+        if (image == null || date == null) {
+            return null;
+        }
+        return new DailyPick(TODAYBING, TODAYBING + ":" + date, unescape(image));
+    }
+
+    /** UP.UPX8 picks a random picture, so the key is the day to keep one cache entry. */
+    public static DailyPick fromUpx8(String json, String day) {
+        String url = quotedValue(json, "url");
+        if (url == null || day == null) {
+            return null;
+        }
+        return new DailyPick(UPX8, UPX8 + ":" + day, unescape(url));
+    }
+
+    /** Yumus returns the image directly, so the pick only carries the day. */
+    public static DailyPick fromYumus(String imageUrl, String day) {
+        if (imageUrl == null || day == null) {
+            return null;
+        }
+        return new DailyPick(YUMUS, YUMUS + ":" + day, imageUrl);
+    }
+
+    private static String quotedValue(String json, String field) {
+        if (json == null) {
+            return null;
+        }
+        String marker = "\"" + field + "\":\"";
+        int at = json.indexOf(marker);
+        if (at < 0) {
+            return null;
+        }
+        int start = at + marker.length();
+        int end = json.indexOf(34, start);
+        if (end < 0) {
+            return null;
+        }
+        return json.substring(start, end);
+    }
+
+    private static String unescape(String url) {
+        if (url == null) {
+            return null;
+        }
+        return url.replace("\\/", "/");
     }
 }

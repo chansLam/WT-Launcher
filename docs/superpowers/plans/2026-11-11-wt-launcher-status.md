@@ -178,3 +178,20 @@ git commit -m "feat: show vehicle status only when the service is up"
 - 应用名样式：`sans-serif-condensed`、`singleLine + marquee`，对齐 `@style/Icon`。
 - 点击反馈：cell 按下 alpha 0.65 / 抬起回 1，补 `BubbleTextView` 的按压态。
 - 不还原：`AppsConfig.setChangeUI` + `XmlUtils.parseXml` 的外部主题资源包（原版无调用方，死代码）；`TopRightView` 的 `MediaStatusView`（`initMediaStatusView()` 为空）。
+
+## 背景系统：新增壁纸源与比例裁切（2026-11-18）
+
+新增 4 个源（JSON/直链都已实测可用）：
+
+| 源 | 端点 | 返回 | 缓存 key |
+|---|---|---|---|
+| Peapix | `https://peapix.com/bing/feed` | JSON，`fullUrl` 为 1920 宽 jpg，带 title/copyright/date | `peapix:<date>` |
+| TodayBing | `https://www.todaybing.com/api/v1/today?formate=json&size=fhd` | JSON，`data.image`（webp，API19 可解 lossy） | `todaybing:<date>` |
+| UPX8 | `https://wp.upx8.com/api.php?format=json&resolution=1920x1080&count=3` | JSON，`data[].url`（http CDN jpg） | `upx8:<yyyyMMdd>`（随机接口按天缓存） |
+| 语幕 | `https://www.yumus.cn/api/?brand=bing&ua=pc` | 302 直链，1920×1080 jpg | `yumus:<yyyyMMdd>` |
+
+未接：Bing VSAA（给出的文档地址不可用，真实端点无法确认）、UApiPro（只回 webp 原图、无 JSON 元数据，且与必应重复）。
+
+- 每日轮换默认纳入新源（共 8 个：bing-zh / bing-en / wallhaven / zzzmh / peapix / todaybing / upx8 / yumus），单选面板新增 4 项。
+- UPX8 关键词搜索接入自定义搜索聚合（`content=<关键词>&count=3`），`ImageSearch.parseUpx8` 解析。
+- 新增 `core/AspectCrop`：按目标比例中心裁切。`HomeBackground.decode` 与 `WallpaperApplier.setBitmap` 都改为裁切后绘制/设置，修掉 1920×1080 图在 1920×720 屏上被拉伸的问题。

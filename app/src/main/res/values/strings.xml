@@ -18,6 +18,10 @@
     <string name="wallpaper_source_bing_en">必应国际</string>
     <string name="wallpaper_source_wallhaven">Wallhaven</string>
     <string name="wallpaper_source_zzzmh">极简壁纸</string>
+    <string name="wallpaper_source_peapix">Peapix 每日</string>
+    <string name="wallpaper_source_todaybing">TodayBing</string>
+    <string name="wallpaper_source_upx8">UPX8 随机</string>
+    <string name="wallpaper_source_yumus">语幕（必应）</string>
     <string name="wallpaper_default">默认</string>
     <string name="wallpaper_custom">自定义图片</string>
     <string name="wallpaper_local">本地图片</string>

@@ -176,6 +176,18 @@ public final class WallpaperApplier {
         if (DailyFeeds.ZZZMH.equals(source)) {
             return zzzmhDaily(context);
         }
+        if (DailyFeeds.PEAPIX.equals(source)) {
+            return DailyFeeds.fromPeapix(BingClient.fetchJson(context, BingClient.PEAPIX_FEED));
+        }
+        if (DailyFeeds.TODAYBING.equals(source)) {
+            return DailyFeeds.fromTodayBing(BingClient.fetchJson(context, BingClient.TODAYBING_TODAY));
+        }
+        if (DailyFeeds.UPX8.equals(source)) {
+            return DailyFeeds.fromUpx8(BingClient.fetchJson(context, BingClient.UPX8_RANDOM), dayStamp());
+        }
+        if (DailyFeeds.YUMUS.equals(source)) {
+            return DailyFeeds.fromYumus(BingClient.YUMUS_BING, dayStamp());
+        }
         return null;
     }
 
@@ -185,6 +197,10 @@ public final class WallpaperApplier {
         addPick(picks, loadSource(context, DailyFeeds.BING_EN));
         addPick(picks, loadSource(context, DailyFeeds.WALLHAVEN));
         addPick(picks, loadSource(context, DailyFeeds.ZZZMH));
+        addPick(picks, loadSource(context, DailyFeeds.PEAPIX));
+        addPick(picks, loadSource(context, DailyFeeds.TODAYBING));
+        addPick(picks, loadSource(context, DailyFeeds.UPX8));
+        addPick(picks, loadSource(context, DailyFeeds.YUMUS));
         StringBuilder names = new StringBuilder();
         for (int i = 0; i < picks.size(); i++) {
             if (names.length() > 0) {
@@ -221,6 +237,11 @@ public final class WallpaperApplier {
         return Calendar.getInstance().get(Calendar.DAY_OF_YEAR);
     }
 
+    /** YYYYMMDD, so one random pick is cached per day. */
+    private static String dayStamp() {
+        return new java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(new java.util.Date());
+    }
+
     private static boolean applyCachedDaily(Context context) {
         try {
             setBitmap(context, dailyFile(context));
@@ -249,6 +270,7 @@ public final class WallpaperApplier {
         if (bitmap == null) {
             throw new IOException("undecodable wallpaper");
         }
+        bitmap = crop(bitmap, metrics.widthPixels, metrics.heightPixels);
         try {
             WallpaperManager.getInstance(context).setBitmap(bitmap);
         } finally {
@@ -359,5 +381,20 @@ public final class WallpaperApplier {
                 Toast.makeText(host, NOT_UPDATED, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    /** The car screen is 1920×720; leave the source un-stretched by cropping first. */
+    private static Bitmap crop(Bitmap source, int targetWidth, int targetHeight) {
+        int[] rect = com.android.launcherWT.core.AspectCrop.rect(
+                source.getWidth(), source.getHeight(), targetWidth, targetHeight);
+        if (rect[0] == 0 && rect[1] == 0
+                && rect[2] == source.getWidth() && rect[3] == source.getHeight()) {
+            return source;
+        }
+        Bitmap cropped = Bitmap.createBitmap(source, rect[0], rect[1], rect[2], rect[3]);
+        if (cropped != source) {
+            source.recycle();
+        }
+        return cropped;
     }
 }
