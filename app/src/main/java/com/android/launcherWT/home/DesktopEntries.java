@@ -42,6 +42,9 @@ public final class DesktopEntries {
         for (int i = 0; i < favorites.size(); i++) {
             FavoriteCatalog.Entry entry = favorites.get(i);
             reserved.add(entry.packageName);
+            if (CarFilters.hidden(entry.packageName)) {
+                continue;
+            }
             items.add(new Item(
                     entry.key(),
                     entry.packageName,
@@ -55,6 +58,9 @@ public final class DesktopEntries {
         for (int i = 0; i < apps.size(); i++) {
             LaunchableApp app = apps.get(i);
             if (reserved.contains(app.packageName)) {
+                continue;
+            }
+            if (CarFilters.hidden(app.packageName)) {
                 continue;
             }
             items.add(new Item(app.key(), app.packageName, app.className, app.label, 0, false));
