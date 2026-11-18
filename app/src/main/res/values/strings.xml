@@ -48,4 +48,5 @@
     <string name="app_manage_add_hint">可添加的应用</string>
     <string name="app_remove">移除</string>
     <string name="app_add">添加</string>
+    <string name="settings_back">返回桌面</string>
 </resources>

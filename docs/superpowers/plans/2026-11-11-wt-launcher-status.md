@@ -215,3 +215,10 @@ git commit -m "feat: show vehicle status only when the service is up"
 - `logFailure()` 沿 cause 链打印，排查车机上失败原因时看 `BingClient` tag 即可。
 - 下载后先 `BitmapFactory` 探边界再采用，避免 4.4 解不了的 WebP 被当成壁纸发布。
 - 注意：四个域名的 http:// 全部 301 到 https，没有明文降级可用。
+
+## 交互重构（8 条要求）
+- 桌面默认只排列原版白名单（车型过滤后）+ 已添加应用 + 恒有「桌面设置」块；长按菜单（showMenu/dialog_home_menu）整体删除。
+- 桌面图标支持按住 380ms 后拖拽，落位为**插入**语义（其余顺移），松手写 displayOrder；设置块不参与拖拽。
+- 设置页合并为单页双栏：左「壁纸设置」（默认/本地/搜索/每日 + 每日源 Spinner + 预览），右「应用管理」（可移除、可拖动排序、可从已安装列表添加）。旧 AppManageActivity / WallpaperActivity 及 4 个布局已删除，清单只剩 MainActivity + DesktopSettingsActivity。
+- 左上角「返回桌面」按钮，避免车机无返回键被卡住。
+- `./gradlew :core:test :app:assembleDebug` 通过（app-debug.apk ≈ 9.6 MB）。

@@ -114,6 +114,13 @@ public class DesktopSettingsActivity extends Activity {
         desktopScroll = (ScrollView) findViewById(R.id.desktop_apps_scroll);
         availableApps = (LinearLayout) findViewById(R.id.available_apps);
 
+        findViewById(R.id.settings_back).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+
         bindWallpaper();
         bindApps();
         showMode();
