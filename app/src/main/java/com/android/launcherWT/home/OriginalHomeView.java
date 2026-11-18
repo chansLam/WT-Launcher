@@ -135,6 +135,15 @@ public class OriginalHomeView extends FrameLayout {
     private final BroadcastReceiver packageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            String packageName = intent.getData() == null
+                    ? null : intent.getData().getSchemeSpecificPart();
+            if (Intent.ACTION_PACKAGE_REMOVED.equals(action)
+                    && !intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
+                    && packageName != null) {
+                // 卸载：把排序/隐藏记录一并清掉，重新装上还能自动上桌面。
+                database.forgetPackage(packageName);
+            }
             reloadCells();
         }
     };

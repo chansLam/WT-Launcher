@@ -73,6 +73,27 @@ public class DesktopDb extends DesktopState {
         }
     }
 
+    /** 应用被卸载后，清掉它留下的排序与隐藏记录，重装能重新自动上桌面。 */
+    public void forgetPackage(String packageName) {
+        if (packageName == null || packageName.length() == 0) {
+            return;
+        }
+        String prefix = packageName + "/";
+        List<String> order = displayOrder();
+        List<String> kept = new ArrayList<String>(order.size());
+        for (int i = 0; i < order.size(); i++) {
+            String key = order.get(i);
+            if (key.startsWith(prefix)) {
+                setHidden(key, false);
+            } else {
+                kept.add(key);
+            }
+        }
+        if (kept.size() != order.size()) {
+            setDisplayOrder(kept);
+        }
+    }
+
     @Override
     public int gridColumns() {
         return readLayout().columns;

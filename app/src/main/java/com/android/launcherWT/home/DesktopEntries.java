@@ -3,6 +3,7 @@ package com.android.launcherWT.home;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 
@@ -77,12 +78,23 @@ public final class DesktopEntries {
                     "com.tencent.wecarspeech".equals(entry.packageName)));
         }
         InstalledApps installed = InstalledApps.load(context.getPackageManager());
+        // 第三方应用自动上桌面：系统预装的（含厂商桌面、车控、系统工具）不上，白名单已经处理过。
+        PackageManager manager = context.getPackageManager();
+        List<LaunchableApp> apps = installed.apps();
+        for (int i = 0; i < apps.size(); i++) {
+            LaunchableApp app = apps.get(i);
+            if (reserved.contains(app.packageName) || CarFilters.hidden(app.packageName)) {
+                continue;
+            }
+            if (isSystemApp(manager, app.packageName)) {
+                continue;
+            }
+            items.add(new Item(app.key(), app.packageName, app.className, app.label, 0, false));
+        }
         if (items.isEmpty()) {
-            // No car app of the whitelist is installed (emulator/dev board): show what is there
-            // instead of an empty board.
-            List<LaunchableApp> all = installed.apps();
-            for (int i = 0; i < all.size(); i++) {
-                LaunchableApp app = all.get(i);
+            // 白名单和第三方都没有（模拟器/开发板）：有什么放什么，别让桌面空着。
+            for (int i = 0; i < apps.size(); i++) {
+                LaunchableApp app = apps.get(i);
                 if (reserved.contains(app.packageName) || CarFilters.hidden(app.packageName)) {
                     continue;
                 }
@@ -90,7 +102,6 @@ public final class DesktopEntries {
             }
         }
         if (addedKeys != null && !addedKeys.isEmpty()) {
-            List<LaunchableApp> apps = installed.apps();
             for (int i = 0; i < apps.size(); i++) {
                 LaunchableApp app = apps.get(i);
                 if (!addedKeys.contains(app.key()) || reserved.contains(app.packageName)) {
@@ -129,6 +140,20 @@ public final class DesktopEntries {
             result.add(byKey.get(ordered.get(i)));
         }
         return result;
+    }
+
+    /** 系统预装（含预装后升级过的）不算第三方，不进桌面。 */
+    private static boolean isSystemApp(PackageManager manager, String packageName) {
+        try {
+            ApplicationInfo info = manager.getApplicationInfo(packageName, 0);
+            if (info == null) {
+                return true;
+            }
+            int mask = ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP;
+            return (info.flags & mask) != 0;
+        } catch (PackageManager.NameNotFoundException missing) {
+            return true;
+        }
     }
 
     /** The original lists only installed apps that expose a launcher activity. */
