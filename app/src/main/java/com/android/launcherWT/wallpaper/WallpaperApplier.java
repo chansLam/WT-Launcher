@@ -196,15 +196,16 @@ public final class WallpaperApplier {
 
     private static List<DailyPick> loadDaily(Context context) {
         List<DailyPick> picks = new ArrayList<DailyPick>();
-        addPick(picks, loadSource(context, DailyFeeds.BING_ZH));
-        addPick(picks, loadSource(context, DailyFeeds.BING_EN));
-        addPick(picks, loadSource(context, DailyFeeds.WALLHAVEN));
-        addPick(picks, loadSource(context, DailyFeeds.ZZZMH));
-        addPick(picks, loadSource(context, DailyFeeds.PEAPIX));
-        addPick(picks, loadSource(context, DailyFeeds.VSAA));
-        addPick(picks, loadSource(context, DailyFeeds.TODAYBING));
-        addPick(picks, loadSource(context, DailyFeeds.UPX8));
-        addPick(picks, loadSource(context, DailyFeeds.YUMUS));
+        // 顺序照 75Play 现场可用的兜底链：Peapix -> VSAA -> 必应 -> 语幕，再补国内可用源。
+        addPick(picks, trySource(context, DailyFeeds.PEAPIX));
+        addPick(picks, trySource(context, DailyFeeds.VSAA));
+        addPick(picks, trySource(context, DailyFeeds.BING_ZH));
+        addPick(picks, trySource(context, DailyFeeds.YUMUS));
+        addPick(picks, trySource(context, DailyFeeds.BING_EN));
+        addPick(picks, trySource(context, DailyFeeds.ZZZMH));
+        addPick(picks, trySource(context, DailyFeeds.UPX8));
+        addPick(picks, trySource(context, DailyFeeds.TODAYBING));
+        addPick(picks, trySource(context, DailyFeeds.WALLHAVEN));
         StringBuilder names = new StringBuilder();
         for (int i = 0; i < picks.size(); i++) {
             if (names.length() > 0) {
@@ -229,6 +230,12 @@ public final class WallpaperApplier {
             }
         }
         return null;
+    }
+
+    private static DailyPick trySource(Context context, String source) {
+        DailyPick pick = loadSource(context, source);
+        android.util.Log.i("WallpaperDaily", source + (pick == null ? " fail" : " ok " + pick.key));
+        return pick;
     }
 
     private static void addPick(List<DailyPick> picks, DailyPick pick) {

@@ -54,4 +54,28 @@ public final class BingClient {
         Log.w(TAG, "retry download " + url);
         return WallpaperHttp.download(context, url, destination);
     }
+
+    /** 车机网络自检：逐个探一遍壁纸相关站点，返回多行结果。 */
+    public static String probeAll(Context context) {
+        StringBuilder out = new StringBuilder();
+        appendProbe(out, context, "必应(www)", DAILY_URL);
+        appendProbe(out, context, "必应(cn)", "https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=zh-CN");
+        appendProbe(out, context, "VSAA", VSAA_DAILY);
+        appendProbe(out, context, "UPX8", UPX8_RANDOM);
+        appendProbe(out, context, "语幕", YUMUS_BING);
+        appendProbe(out, context, "TodayBing", TODAYBING_TODAY);
+        appendProbe(out, context, "站酷", "https://bz.zzzmh.cn/gallery?r=ultra");
+        appendProbe(out, context, "Peapix", PEAPIX_FEED);
+        appendProbe(out, context, "Wallhaven", DAILY_WALLHAVEN);
+        return out.toString();
+    }
+
+    private static void appendProbe(StringBuilder out, Context context, String label, String url) {
+        String line = WallpaperHttp.probe(context, label, url);
+        Log.i(TAG, "probe " + line);
+        if (out.length() > 0) {
+            out.append('\n');
+        }
+        out.append(line);
+    }
 }

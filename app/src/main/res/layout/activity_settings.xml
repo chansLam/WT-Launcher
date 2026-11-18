@@ -418,6 +418,19 @@
                 </HorizontalScrollView>
 
                 <TextView
+                    android:id="@+id/net_check"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    android:layout_marginLeft="8dp"
+                    android:gravity="center"
+                    android:paddingLeft="10dp"
+                    android:paddingRight="10dp"
+                    android:background="#2AFFFFFF"
+                    android:text="@string/net_check"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="12sp" />
+
+                <TextView
                     android:id="@+id/recommend_status"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

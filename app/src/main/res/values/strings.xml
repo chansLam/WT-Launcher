@@ -78,4 +78,7 @@
     <string name="settings_discarded">未保存的改动已放弃</string>
     <string name="preview_label">应用</string>
     <string name="preview_caption_format">%1$d 列 × %2$d 行 · 图标 %3$d px</string>
+    <string name="net_check">网络自检</string>
+    <string name="net_check_running">自检中…</string>
+    <string name="net_check_title">壁纸站点自检</string>
 </resources>

@@ -195,6 +195,39 @@ public final class WallpaperHttp {
         }
     }
 
+
+    /**
+     * 自检用：短超时探一次接口，成功返回 "标签 code 长度B"，失败返回 "标签 FAIL 异常名"。
+     * 车机上哪些站点连不上，用这个直接看。
+     */
+    public static String probe(Context context, String label, String url) {
+        try {
+            Request request = new Request.Builder()
+                    .url(url)
+                    .header("User-Agent", userAgent(context))
+                    .build();
+            OkHttpClient probeClient = client(context).newBuilder()
+                    .connectTimeout(6, TimeUnit.SECONDS)
+                    .readTimeout(8, TimeUnit.SECONDS)
+                    .build();
+            Response response = probeClient.newCall(request).execute();
+            try {
+                long length = response.body() == null ? 0 : response.body().contentLength();
+                return label + " " + response.code() + (length > 0 ? " " + length + "B" : "");
+            } finally {
+                response.close();
+            }
+        } catch (Exception ex) {
+            Throwable root = ex;
+            int guard = 0;
+            while (root.getCause() != null && root.getCause() != root && guard++ < 8) {
+                root = root.getCause();
+            }
+            String name = root.getClass().getSimpleName();
+            return label + " FAIL " + (name.length() == 0 ? root.getClass().getName() : name);
+        }
+    }
+
     private static OkHttpClient build(Context context) {
         X509TrustManager trust = compositeTrust(context);
         OkHttpClient.Builder builder = new OkHttpClient.Builder()

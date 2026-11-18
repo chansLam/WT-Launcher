@@ -92,6 +92,7 @@ public class DesktopSettingsActivity extends Activity {
     private LinearLayout recommendCategories;
     private LinearLayout recommendResults;
     private TextView recommendStatus;
+    private TextView netCheck;
     private final AtomicInteger recommendGeneration = new AtomicInteger();
     private String selectedCategory = WallpaperCategory.POPULAR;
 
@@ -157,6 +158,15 @@ public class DesktopSettingsActivity extends Activity {
         recommendCategories = (LinearLayout) findViewById(R.id.recommend_categories);
         recommendResults = (LinearLayout) findViewById(R.id.recommend_results);
         recommendStatus = (TextView) findViewById(R.id.recommend_status);
+        netCheck = (TextView) findViewById(R.id.net_check);
+        if (netCheck != null) {
+            netCheck.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    runNetCheck();
+                }
+            });
+        }
         previewGrid = (LinearLayout) findViewById(R.id.preview_grid);
         previewDots = (LinearLayout) findViewById(R.id.preview_dots);
         pickLocalButton = findViewById(R.id.pick_local);
@@ -919,6 +929,35 @@ public class DesktopSettingsActivity extends Activity {
                 });
             }
         }, "wallpaper-recommend").start();
+    }
+
+
+    /** 车机上哪些壁纸站点连不上，点一下就能看到。 */
+    private void runNetCheck() {
+        final TextView button = netCheck;
+        if (button == null) {
+            return;
+        }
+        button.setEnabled(false);
+        button.setText(R.string.net_check_running);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final String report = BingClient.probeAll(DesktopSettingsActivity.this);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        button.setEnabled(true);
+                        button.setText(R.string.net_check);
+                        new android.app.AlertDialog.Builder(DesktopSettingsActivity.this)
+                                .setTitle(R.string.net_check_title)
+                                .setMessage(report)
+                                .setPositiveButton(android.R.string.ok, null)
+                                .show();
+                    }
+                });
+            }
+        }, "wallpaper-net-check").start();
     }
 
     private List<ImageSearch.Hit> loadRecommends(WallpaperCategory category) {
