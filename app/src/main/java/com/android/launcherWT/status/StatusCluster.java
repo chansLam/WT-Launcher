@@ -126,6 +126,13 @@ public final class StatusCluster {
         params.gravity = Gravity.CENTER_VERTICAL;
         params.rightMargin = iconGap;
         child.setLayoutParams(params);
+        // Several children hide themselves in their constructor when the head
+        // unit has no such device (DvrView does it when hasDvrDevice() is false,
+        // the stock launcher never shows the recording icon on a car without a
+        // DVR). Keep that decision instead of forcing the layout's default back.
+        if (visibility == View.VISIBLE && child.getVisibility() == View.GONE) {
+            visibility = View.GONE;
+        }
         child.setVisibility(visibility);
         root.addView(child);
         vehicle.add(child);
@@ -177,7 +184,7 @@ public final class StatusCluster {
     private View dvr(Context ctx) {
         try {
             View view = new DvrView(ctx);
-            report.append("dvr=").append("ok\n");
+            report.append("dvr=ok,selfVisibility=").append(view.getVisibility()).append('\n');
             return view;
         } catch (Throwable error) {
             Log.i(TAG, "dvr service unavailable: " + error);
