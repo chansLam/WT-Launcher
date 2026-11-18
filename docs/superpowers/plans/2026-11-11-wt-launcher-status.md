@@ -160,3 +160,13 @@ git commit -m "feat: show vehicle status only when the service is up"
 3. 主题实时：`onAttachedToWindow` 用 `IOnThemeChange.Stub` 注册 `SettingServiceManager`，回调 `post(reload())` 刷新背景/图标/指示器；`onDetachedFromWindow` 注销。
 4. 安全模式：`HomeLaunch` 在 start / startSpeech 前判 `pm.isSafeMode() && !Utilities.isSystemApp()`，命中弹 `safe_mode_error` 并 return。
 5. 状态栏：`StatusCluster` 由夜间判断改为固定 `setCurTheme(1)`（等价 `TopRightView.setThemeType(1)`）。
+
+## 车型过滤（2026-11-18）
+
+原版 `AppsManager.loadAndBindAllAppsList` 的过滤条件在此还原：
+
+- `sys.thirdapk.caninstall == 1`（`AppsConfig.showTest()`）时白名单整体失效，桌面显示所有已安装应用
+- 否则车型命中 `mDisableCarTypeList`（CARTYPE_1~9、11~14）**且**包命中 `mDisableAppsList`（`com.coagent.dvr`、`com.incall.apps.comfortcockpit`）时两者都不出现
+- 车型取 `com.incall.proxy.setting.SettingManager.getCurCarType()`，取不到时退回默认 `CHANGAN_S311_CARTYPE_10`
+
+实现：`app/src/main/java/com/android/launcherWT/home/CarFilters.java`，由 `DesktopEntries.source` 统一过滤（桌面与应用管理页同步生效）。
