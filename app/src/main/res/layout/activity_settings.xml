@@ -146,13 +146,19 @@
             </LinearLayout>
 
             <FrameLayout
-                android:id="@+id/preview_area"
+                android:id="@+id/preview_frame"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_marginTop="4dp"
                 android:layout_weight="1"
-                android:background="#22000000"
                 android:minHeight="150dp">
+
+            <FrameLayout
+                android:id="@+id/preview_area"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:background="#22000000">
 
                 <ImageView
                     android:id="@+id/wallpaper_preview"
@@ -179,6 +185,7 @@
                     android:layout_marginBottom="4dp"
                     android:gravity="center_horizontal"
                     android:orientation="horizontal" />
+            </FrameLayout>
             </FrameLayout>
 
             <TextView

@@ -18,6 +18,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
@@ -97,6 +98,9 @@ public class DesktopSettingsActivity extends Activity {
     private LinearLayout previewDots;
     private View pickLocalButton;
     private View previewArea;
+    private android.widget.FrameLayout previewFrame;
+    private int previewBoardWidth;
+    private int previewBoardHeight;
     private TextView previewCaption;
 
     private final List<DesktopEntries.Item> desktopItems = new ArrayList<DesktopEntries.Item>();
@@ -145,6 +149,7 @@ public class DesktopSettingsActivity extends Activity {
         tabLayout = (TextView) findViewById(R.id.tab_layout);
         tabApps = (TextView) findViewById(R.id.tab_apps);
         previewArea = findViewById(R.id.preview_area);
+        previewFrame = (android.widget.FrameLayout) findViewById(R.id.preview_frame);
         recommendCategories = (LinearLayout) findViewById(R.id.recommend_categories);
         recommendResults = (LinearLayout) findViewById(R.id.recommend_results);
         recommendStatus = (TextView) findViewById(R.id.recommend_status);
@@ -152,6 +157,15 @@ public class DesktopSettingsActivity extends Activity {
         previewDots = (LinearLayout) findViewById(R.id.preview_dots);
         pickLocalButton = findViewById(R.id.pick_local);
         previewCaption = (TextView) findViewById(R.id.preview_caption);
+        if (previewFrame != null) {
+            previewFrame.getViewTreeObserver().addOnGlobalLayoutListener(
+                    new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+                        @Override
+                        public void onGlobalLayout() {
+                            applyPreviewAspect();
+                        }
+                    });
+        }
 
         tabLayout.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -283,16 +297,42 @@ public class DesktopSettingsActivity extends Activity {
         updatePreview();
     }
 
+    /** Keeps preview_area at the car screen ratio, letterboxed inside preview_frame. */
+    private void applyPreviewAspect() {
+        if (previewFrame == null || previewArea == null) {
+            return;
+        }
+        int frameWidth = previewFrame.getWidth();
+        int frameHeight = previewFrame.getHeight();
+        if (frameWidth <= 0 || frameHeight <= 0) {
+            return;
+        }
+        int width = Math.min(frameWidth, Math.round(frameHeight * 1920f / 720f));
+        int height = Math.round(width * 720f / 1920f);
+        if (width == previewBoardWidth && height == previewBoardHeight) {
+            return;
+        }
+        previewBoardWidth = width;
+        previewBoardHeight = height;
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) previewArea.getLayoutParams();
+        params.width = width;
+        params.height = height;
+        params.gravity = Gravity.CENTER;
+        previewArea.setLayoutParams(params);
+    }
+
     /** Miniature of the whole board: wallpaper underneath, columns x rows cells on top. */
     private void updatePreview() {
         if (previewGrid == null || previewCaption == null) {
             return;
         }
-        View box = previewGrid;
-        int boxWidth = box.getWidth();
-        int boxHeight = box.getHeight();
+        // The board keeps the real screen ratio (1920x720) inside the frame, so the
+        // preview never stretches the car screen.
+        applyPreviewAspect();
+        int boxWidth = previewBoardWidth;
+        int boxHeight = previewBoardHeight;
         if (boxWidth <= 0 || boxHeight <= 0) {
-            box.post(new Runnable() {
+            previewGrid.post(new Runnable() {
                 @Override
                 public void run() {
                     updatePreview();

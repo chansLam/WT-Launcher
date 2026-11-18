@@ -273,3 +273,10 @@ git commit -m "feat: show vehicle status only when the service is up"
 - 文字：`labelPx=max(18, 28*sy)`、预留 `labelBox=1.5×labelPx`，避免预览格内文字被裁切。
 - 模式胶囊：选中态给 `0x33FFFFFF` 底色 + 白色加粗文字（`styleModeRadios()`）。
 - 验收：emulator-5554 截图 `lay-6.png` — 推荐 13+ 张横滚、背景一条化、预览 5×4 真实栅格 + 两条分页短条。
+
+## 预览锁定车机比例（2026-11-18）
+
+- 预览不再随面板尺寸拉伸：新增 `preview_frame`（weight 1 包裹层）+ `preview_area`（居中子视图），
+  `applyPreviewAspect()` 按 1920:720 计算 `min(frameWidth, frameHeight*8/3)`，并用
+  `OnGlobalLayoutListener` 在每次布局后复核，保证 8:3 不变形（截图实测 971×364）。
+- 版面因此左右留白，但预览内的栅格／边距／分页短条仍按真实桌面参数绘制。
