@@ -49,4 +49,9 @@
     <string name="app_remove">移除</string>
     <string name="app_add">添加</string>
     <string name="settings_back">返回桌面</string>
+    <string name="desktop_layout_title">桌面设置</string>
+    <string name="grid_columns_label">列</string>
+    <string name="grid_rows_label">行</string>
+    <string name="icon_size_label">图标</string>
+    <string name="desktop_layout_hint">改完返回桌面即生效；图标大小 64~160</string>
 </resources>

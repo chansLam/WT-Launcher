@@ -15,8 +15,15 @@ import java.util.List;
 
 public class DesktopDb extends DesktopState {
     static final String NAME = "desktop.db";
-    private static final int VERSION = 3;
+    private static final int VERSION = 4;
     private static final int WALLPAPER_ID = 1;
+    private static final int LAYOUT_ID = 1;
+    public static final int MIN_COLUMNS = 4;
+    public static final int MAX_COLUMNS = 7;
+    public static final int MIN_ROWS = 2;
+    public static final int MAX_ROWS = 4;
+    public static final int MIN_ICON = 64;
+    public static final int MAX_ICON = 160;
 
     private final Context context;
     private final Helper helper;
@@ -64,6 +71,84 @@ public class DesktopDb extends DesktopState {
             rebuild();
             writeOrder(helper.getWritableDatabase(), keys);
         }
+    }
+
+    @Override
+    public int gridColumns() {
+        return readLayout().columns;
+    }
+
+    @Override
+    public void setGridColumns(int columns) {
+        LayoutRow row = readLayout();
+        writeLayout(clamp(columns, MIN_COLUMNS, MAX_COLUMNS), row.rows, row.iconSize);
+    }
+
+    @Override
+    public int gridRows() {
+        return readLayout().rows;
+    }
+
+    @Override
+    public void setGridRows(int rows) {
+        LayoutRow row = readLayout();
+        writeLayout(row.columns, clamp(rows, MIN_ROWS, MAX_ROWS), row.iconSize);
+    }
+
+    @Override
+    public int iconSize() {
+        return readLayout().iconSize;
+    }
+
+    @Override
+    public void setIconSize(int size) {
+        LayoutRow row = readLayout();
+        writeLayout(row.columns, row.rows, clamp(size, MIN_ICON, MAX_ICON));
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return value < min ? min : (value > max ? max : value);
+    }
+
+    private LayoutRow readLayout() {
+        try {
+            return queryLayout(open());
+        } catch (SQLiteException first) {
+            rebuild();
+            return queryLayout(helper.getWritableDatabase());
+        }
+    }
+
+    private LayoutRow queryLayout(SQLiteDatabase db) {
+        LayoutRow row = new LayoutRow();
+        Cursor cursor = db.query(
+                "layout",
+                new String[] {"columns", "rows", "icon_size"},
+                "id=?",
+                new String[] {Integer.toString(LAYOUT_ID)},
+                null,
+                null,
+                null);
+        try {
+            if (!cursor.moveToFirst()) {
+                return row;
+            }
+            row.columns = clamp(cursor.getInt(0), MIN_COLUMNS, MAX_COLUMNS);
+            row.rows = clamp(cursor.getInt(1), MIN_ROWS, MAX_ROWS);
+            row.iconSize = clamp(cursor.getInt(2), MIN_ICON, MAX_ICON);
+            return row;
+        } finally {
+            cursor.close();
+        }
+    }
+
+    private void writeLayout(int columns, int rows, int iconSize) {
+        ContentValues values = new ContentValues();
+        values.put("id", LAYOUT_ID);
+        values.put("columns", columns);
+        values.put("rows", rows);
+        values.put("icon_size", iconSize);
+        open().insertWithOnConflict("layout", null, values, SQLiteDatabase.CONFLICT_REPLACE);
     }
 
     @Override
@@ -242,6 +327,12 @@ public class DesktopDb extends DesktopState {
         open().insertWithOnConflict("wallpaper", null, values, SQLiteDatabase.CONFLICT_REPLACE);
     }
 
+    private static final class LayoutRow {
+        private int columns = DesktopState.DEFAULT_COLUMNS;
+        private int rows = DesktopState.DEFAULT_ROWS;
+        private int iconSize = DesktopState.DEFAULT_ICON_SIZE;
+    }
+
     private static final class WallpaperRow {
         private WallpaperMode mode = WallpaperMode.DEFAULT;
         private String customPath;
@@ -261,6 +352,8 @@ public class DesktopDb extends DesktopState {
                     "CREATE TABLE wallpaper(id INTEGER PRIMARY KEY, mode TEXT, custom_path TEXT, daily_startdate TEXT, daily_source TEXT)");
             db.execSQL(
                     "CREATE TABLE app_order(component_key TEXT PRIMARY KEY, position INTEGER NOT NULL)");
+            db.execSQL(
+                    "CREATE TABLE layout(id INTEGER PRIMARY KEY, columns INTEGER, rows INTEGER, icon_size INTEGER)");
         }
 
         @Override
@@ -271,6 +364,10 @@ public class DesktopDb extends DesktopState {
             }
             if (oldVersion < 3) {
                 db.execSQL("ALTER TABLE wallpaper ADD COLUMN daily_source TEXT");
+            }
+            if (oldVersion < 4) {
+                db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS layout(id INTEGER PRIMARY KEY, columns INTEGER, rows INTEGER, icon_size INTEGER)");
             }
         }
     }

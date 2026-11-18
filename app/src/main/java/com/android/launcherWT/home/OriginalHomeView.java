@@ -34,6 +34,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.android.launcherWT.R;
+import com.android.launcherWT.core.DesktopState;
 import com.android.launcherWT.core.LaunchableApp;
 import com.android.launcherWT.core.WallpaperMode;
 import com.android.launcherWT.store.DesktopDb;
@@ -56,9 +57,9 @@ import java.util.Set;
 public class OriginalHomeView extends FrameLayout {
     private static final int DESIGN_W = 1920;
     private static final int DESIGN_H = 720;
-    private static final int COLUMNS = 5;
-    private static final int ROWS = 3;
-    private static final int PAGE_SIZE = COLUMNS * ROWS;
+    private int columns = DesktopState.DEFAULT_COLUMNS;
+    private int rows = DesktopState.DEFAULT_ROWS;
+    private int iconSizeDesign = DesktopState.DEFAULT_ICON_SIZE;
     private static final int COLOR_ACTIVE = 0xFFFFFFFF;
     private static final int COLOR_INACTIVE = 0x6FFFFFFF;
     private static final String SPEECH_TYPE = "type";
@@ -172,6 +173,9 @@ public class OriginalHomeView extends FrameLayout {
     private void reloadCells() {
         board.removeAllViews();
         cells.clear();
+        columns = database.gridColumns();
+        rows = database.gridRows();
+        iconSizeDesign = database.iconSize();
         icons.clear();
         labels.clear();
         List<DesktopEntries.Item> source = DesktopEntries.source(getContext(), theme, database.displayOrder());
@@ -349,43 +353,59 @@ public class OriginalHomeView extends FrameLayout {
         }
     }
 
+    private int pageSize() {
+        return Math.max(1, columns * rows);
+    }
+
+    private int viewHeight() {
+        return getHeight() > 0 ? getHeight() : DESIGN_H;
+    }
+
     private void layoutCells(int width, float sx, float sy) {
         int padLeft = Math.round(80 * sx);
+        int padRight = Math.round(80 * sx);
         int padTop = Math.round(64 * sy);
-        int itemWidth = Math.round(264 * sx);
-        int itemHeight = Math.round(176 * sy);
-        int insetLeft = Math.round(56 * sx);
-        int stride = insetLeft + itemWidth + Math.round(32 * sx);
-        int iconSize = Math.round(96 * sx);
-        int iconTop = Math.round(16 * sy);
-        int labelGap = Math.round(10 * sy);
-        int rowGap = Math.round(20 * sy);
+        int padBottom = Math.round(84 * sy);
+        int gridWidth = Math.max(1, width - padLeft - padRight);
+        int cellWidth = gridWidth / Math.max(1, columns);
+        int gridHeight = Math.max(1, viewHeight() - padTop - padBottom);
+        int cellHeight = gridHeight / Math.max(1, rows);
+        float iconScale = Math.max(0.5f, iconSizeDesign / (float) DesktopState.DEFAULT_ICON_SIZE);
+        int iconSize = Math.round(iconSizeDesign * sx);
+        int labelText = Math.round(28f * sy * Math.min(1.5f, iconScale));
+        int labelGap = Math.round(8 * sy);
         for (int i = 0; i < cells.size(); i++) {
-            int pageIndex = i / PAGE_SIZE;
-            int slot = i % PAGE_SIZE;
-            int column = slot % COLUMNS;
-            int row = slot / COLUMNS;
-            int cellLeft = pageIndex * width + padLeft + column * stride + insetLeft;
-            int cellTop = padTop + row * (itemHeight + rowGap);
+            int pageIndex = i / pageSize();
+            int slot = i % pageSize();
+            int column = slot % columns;
+            int row = slot / columns;
             View cell = cells.get(i);
-            cell.layout(cellLeft, cellTop, cellLeft + itemWidth, cellTop + itemHeight);
-            ImageView icon = icons.get(i);
-            int iconLeft = (itemWidth - iconSize) / 2;
-            icon.layout(iconLeft, iconTop, iconLeft + iconSize, iconTop + iconSize);
+            int cellLeft = pageIndex * width + padLeft + column * cellWidth;
+            int cellTop = padTop + row * cellHeight;
+            cell.layout(cellLeft, cellTop, cellLeft + cellWidth, cellTop + cellHeight);
+
             TextView label = labels.get(i);
-            label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, 28f * sy);
-            int labelTop = iconTop + iconSize + labelGap;
+            label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, labelText);
             label.measure(
-                    MeasureSpec.makeMeasureSpec(itemWidth, MeasureSpec.EXACTLY),
-                    MeasureSpec.makeMeasureSpec(itemHeight - labelTop, MeasureSpec.AT_MOST));
-            int labelWidth = label.getMeasuredWidth();
-            int labelLeft = Math.max(0, (itemWidth - labelWidth) / 2);
-            label.layout(labelLeft, labelTop, labelLeft + labelWidth, labelTop + label.getMeasuredHeight());
+                    MeasureSpec.makeMeasureSpec(cellWidth, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(cellHeight, MeasureSpec.AT_MOST));
+            int labelHeight = label.getMeasuredHeight();
+            int contentHeight = iconSize + labelGap + labelHeight;
+            int contentTop = cellTop + Math.max(0, (cellHeight - contentHeight) / 2);
+
+            ImageView icon = icons.get(i);
+            int iconLeft = cellLeft + (cellWidth - iconSize) / 2;
+            icon.layout(iconLeft, contentTop, iconLeft + iconSize, contentTop + iconSize);
+
+            int labelTop = contentTop + iconSize + labelGap;
+            int labelLeft = cellLeft + Math.max(0, (cellWidth - label.getMeasuredWidth()) / 2);
+            label.layout(labelLeft, labelTop, labelLeft + label.getMeasuredWidth(),
+                    labelTop + labelHeight);
         }
     }
 
     private int pageCount() {
-        int count = (cells.size() + PAGE_SIZE - 1) / PAGE_SIZE;
+        int count = (cells.size() + pageSize() - 1) / pageSize();
         return Math.max(1, count);
     }
 

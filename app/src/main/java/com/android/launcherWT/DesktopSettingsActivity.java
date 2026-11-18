@@ -21,6 +21,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -121,9 +122,91 @@ public class DesktopSettingsActivity extends Activity {
             }
         });
 
+        bindDesktopLayout();
         bindWallpaper();
         bindApps();
         showMode();
+    }
+
+    // ------------------------------------------------------------ desktop grid
+
+    private void bindDesktopLayout() {
+        Spinner columns = (Spinner) findViewById(R.id.grid_columns);
+        Spinner rows = (Spinner) findViewById(R.id.grid_rows);
+        SeekBar iconSize = (SeekBar) findViewById(R.id.icon_size);
+        TextView iconValue = (TextView) findViewById(R.id.icon_size_value);
+
+        final int minColumns = DesktopDb.MIN_COLUMNS;
+        final int maxColumns = DesktopDb.MAX_COLUMNS;
+        String[] columnLabels = new String[maxColumns - minColumns + 1];
+        for (int i = 0; i < columnLabels.length; i++) {
+            columnLabels[i] = Integer.toString(minColumns + i);
+        }
+        ArrayAdapter<String> columnAdapter = new ArrayAdapter<String>(this,
+                android.R.layout.simple_spinner_item, columnLabels);
+        columnAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        columns.setAdapter(columnAdapter);
+        columns.setSelection(clampIndex(database.gridColumns() - minColumns, columnLabels.length));
+
+        final int minRows = DesktopDb.MIN_ROWS;
+        final int maxRows = DesktopDb.MAX_ROWS;
+        String[] rowLabels = new String[maxRows - minRows + 1];
+        for (int i = 0; i < rowLabels.length; i++) {
+            rowLabels[i] = Integer.toString(minRows + i);
+        }
+        ArrayAdapter<String> rowAdapter = new ArrayAdapter<String>(this,
+                android.R.layout.simple_spinner_item, rowLabels);
+        rowAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        rows.setAdapter(rowAdapter);
+        rows.setSelection(clampIndex(database.gridRows() - minRows, rowLabels.length));
+
+        columns.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                database.setGridColumns(minColumns + position);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+        rows.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                database.setGridRows(minRows + position);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+
+        final int minIcon = DesktopDb.MIN_ICON;
+        iconSize.setMax(DesktopDb.MAX_ICON - minIcon);
+        iconSize.setProgress(database.iconSize() - minIcon);
+        iconValue.setText(Integer.toString(database.iconSize()));
+        iconSize.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                iconValue.setText(Integer.toString(minIcon + progress));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                database.setIconSize(minIcon + seekBar.getProgress());
+            }
+        });
+    }
+
+    private static int clampIndex(int value, int size) {
+        if (value < 0) {
+            return 0;
+        }
+        return value >= size ? size - 1 : value;
     }
 
     // ---------------------------------------------------------------- wallpaper

@@ -26,6 +26,22 @@ public abstract class DesktopState {
 
     public abstract void setDailySource(String source);
 
+    public static final int DEFAULT_COLUMNS = 5;
+    public static final int DEFAULT_ROWS = 3;
+    public static final int DEFAULT_ICON_SIZE = 96;
+
+    public abstract int gridColumns();
+
+    public abstract void setGridColumns(int columns);
+
+    public abstract int gridRows();
+
+    public abstract void setGridRows(int rows);
+
+    public abstract int iconSize();
+
+    public abstract void setIconSize(int size);
+
     public abstract List<String> displayOrder();
 
     public abstract void setDisplayOrder(List<String> keys);
@@ -41,6 +57,9 @@ public abstract class DesktopState {
         private String customPath;
         private String dailyStartdate;
         private String dailySource;
+        private int columns = DEFAULT_COLUMNS;
+        private int rows = DEFAULT_ROWS;
+        private int iconSize = DEFAULT_ICON_SIZE;
 
         @Override
         public boolean isHidden(String key) {
@@ -54,6 +73,36 @@ public abstract class DesktopState {
             } else {
                 this.hidden.remove(key);
             }
+        }
+
+        @Override
+        public int gridColumns() {
+            return columns;
+        }
+
+        @Override
+        public void setGridColumns(int columns) {
+            this.columns = columns;
+        }
+
+        @Override
+        public int gridRows() {
+            return rows;
+        }
+
+        @Override
+        public void setGridRows(int rows) {
+            this.rows = rows;
+        }
+
+        @Override
+        public int iconSize() {
+            return iconSize;
+        }
+
+        @Override
+        public void setIconSize(int size) {
+            this.iconSize = size;
         }
 
         @Override

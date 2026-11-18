@@ -222,3 +222,8 @@ git commit -m "feat: show vehicle status only when the service is up"
 - 设置页合并为单页双栏：左「壁纸设置」（默认/本地/搜索/每日 + 每日源 Spinner + 预览），右「应用管理」（可移除、可拖动排序、可从已安装列表添加）。旧 AppManageActivity / WallpaperActivity 及 4 个布局已删除，清单只剩 MainActivity + DesktopSettingsActivity。
 - 左上角「返回桌面」按钮，避免车机无返回键被卡住。
 - `./gradlew :core:test :app:assembleDebug` 通过（app-debug.apk ≈ 9.6 MB）。
+
+## 桌面栅格可配置
+- 设置页新增「桌面设置」区：列数 4~7、行数 2~4、图标大小 64~160（SeekBar），改完返回桌面即生效（MainActivity.onResume → reload）。
+- 持久化落在 desktop.db 新表 `layout(id, columns, rows, icon_size)`，DB 版本升到 4，老库 upgrade 建表；DesktopState 抽象出 gridColumns/gridRows/iconSize。
+- OriginalHomeView 去掉写死的 5×3/PAGE_SIZE，改为按列数/行数均分 1920×720 有效区（pad 80/80/64/84），图标按设置尺寸居中，文字随图标缩放（0.85~1.5 倍）。
