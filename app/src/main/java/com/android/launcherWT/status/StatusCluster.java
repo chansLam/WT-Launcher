@@ -22,7 +22,11 @@ import com.autopai.support.utils.SignalView;
 import com.autopai.support.utils.UsbView;
 import com.autopai.support.utils.WifiView;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -41,6 +45,7 @@ public final class StatusCluster {
     private final Context context;
     private final LinearLayout root;
     private final List<View> vehicle = new ArrayList<View>();
+    private final StringBuilder report = new StringBuilder();
     private final List<Integer> savedVisibility = new ArrayList<Integer>();
     private final int height;
     private final int topMargin;
@@ -97,6 +102,7 @@ public final class StatusCluster {
         addClock(ctx, iconGap);
 
         listenStatusBar();
+        writeReport();
     }
 
     public View view() {
@@ -158,64 +164,124 @@ public final class StatusCluster {
 
     private View airCondition(Context ctx) {
         try {
-            return new AirConditionView(ctx);
+            View view = new AirConditionView(ctx);
+            report.append("air=").append("ok\n");
+            return view;
         } catch (Throwable error) {
             Log.i(TAG, "air condition service unavailable: " + error);
-            return null;
-        }
-    }
-
-    private View usb(Context ctx) {
-        try {
-            return new UsbView(ctx);
-        } catch (Throwable error) {
-            Log.i(TAG, "usb service unavailable: " + error);
+            report.append("air=").append(error).append('\n');
             return null;
         }
     }
 
     private View dvr(Context ctx) {
         try {
-            return new DvrView(ctx);
+            View view = new DvrView(ctx);
+            report.append("dvr=").append("ok\n");
+            return view;
         } catch (Throwable error) {
             Log.i(TAG, "dvr service unavailable: " + error);
+            report.append("dvr=").append(error).append('\n');
+            return null;
+        }
+    }
+
+    private View usb(Context ctx) {
+        try {
+            View view = new UsbView(ctx);
+            report.append("usb=").append("ok\n");
+            return view;
+        } catch (Throwable error) {
+            Log.i(TAG, "usb service unavailable: " + error);
+            report.append("usb=").append(error).append('\n');
             return null;
         }
     }
 
     private View wifi(Context ctx) {
         try {
-            return new WifiView(ctx);
+            View view = new WifiView(ctx);
+            report.append("wifi=").append("ok\n");
+            return view;
         } catch (Throwable error) {
             Log.i(TAG, "wifi service unavailable: " + error);
+            report.append("wifi=").append(error).append('\n');
             return null;
         }
     }
 
     private View bluetooth(Context ctx) {
         try {
-            return new BluetoothView(ctx);
+            View view = new BluetoothView(ctx);
+            report.append("bt=").append("ok\n");
+            return view;
         } catch (Throwable error) {
             Log.i(TAG, "bluetooth service unavailable: " + error);
+            report.append("bt=").append(error).append('\n');
             return null;
         }
     }
 
     private View mute(Context ctx) {
         try {
-            return new MuteView(ctx);
+            View view = new MuteView(ctx);
+            report.append("mute=").append("ok\n");
+            return view;
         } catch (Throwable error) {
             Log.i(TAG, "mute service unavailable: " + error);
+            report.append("mute=").append(error).append('\n');
             return null;
         }
     }
 
     private View signal(Context ctx) {
         try {
-            return new SignalView(ctx);
+            View view = new SignalView(ctx);
+            report.append("signal=").append("ok\n");
+            return view;
         } catch (Throwable error) {
             Log.i(TAG, "signal service unavailable: " + error);
+            report.append("signal=").append(error).append('\n');
             return null;
+        }
+    }
+
+    /** Which vendor entry points are actually reachable on this head unit. */
+    private void probeVendorLibrary() {
+        probe("com.incall.proxy.ac.AirConditionManager");
+        probe("com.incall.proxy.can.CanManager");
+        probe("com.incall.proxy.tbox.TboxManager");
+        probe("com.incall.proxy.bluetooth.BluetoothManager");
+    }
+
+    private void probe(String className) {
+        try {
+            Class.forName(className);
+            report.append("lib ").append(className).append("=ok\n");
+        } catch (Throwable error) {
+            report.append("lib ").append(className).append('=').append(error).append('\n');
+        }
+    }
+
+    /**
+     * The stock cluster lives on vendor services that may not resolve outside
+     * the factory app. Dump what was built and why to the SD card, so a head
+     * unit without logcat can still be inspected.
+     */
+    private void writeReport() {
+        probeVendorLibrary();
+        String when = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+        StringBuilder text = new StringBuilder();
+        text.append("LauncherWT status cluster ").append(when).append('\n');
+        text.append(report);
+        try {
+            File file = new File("/sdcard/launcherWT-status.log");
+            FileWriter writer = new FileWriter(file, false);
+            writer.write(text.toString());
+            writer.close();
+            Log.i(TAG, "status report written");
+        } catch (Throwable error) {
+            Log.i(TAG, "status report not written: " + error);
         }
     }
 
