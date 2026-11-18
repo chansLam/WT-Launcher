@@ -238,3 +238,9 @@ git commit -m "feat: show vehicle status only when the service is up"
 - 症状：桌面只显示第一个图标，其余图标与所有应用名都不可见；`uiautomator dump` 里只有时钟一个 TextView。
 - 原因：`OriginalHomeView.onLayout` 里手工 `cell/icon/label.layout()`，与空实现的 `Board`（ViewGroup.onLayout 为空）和子 `LinearLayout` 自身的测量/布局互相打架，只有首个 child 的 frame 生效，其余 child 位置错误或宽高为 0，被当作不可见。
 - 修复：`Board` 变成真正的栅格容器——`configure(pageWidth, columns, rows, pages, pads)` 后在 `onMeasure` 用 EXACTLY(cellW/cellH) 测量每个 child，在 `onLayout` 按 页/列/行 摆放；单元格内部改用标准 `LinearLayout.LayoutParams`（图标定宽定高、文字 wrap + topMargin），删除 `layoutCells` 与手工 frame。列行、图标尺寸改动时只需重测。
+
+## 设置页三 Tab + 保存语义 + 图标预览
+- 布局：左栏固定导航「桌面布局 / 壁纸设置 / 应用管理」三个独立 Tab（选中高亮+加粗），右侧 FrameLayout 切三块面板；左栏底部「保存并返回桌面」主按钮 + 下方「返回桌面」（放弃改动）。
+- 保存语义：桌面布局（列/行/图标）与应用管理（增删/排序）全部走 pending 缓冲（`pendingColumns/pendingRows/pendingIconSize/pendingOrder/pendingHidden`），点保存才一次性写 `DesktopDb`，随后把 `MainActivity` 置顶再 finish，确保一定回到桌面；壁纸仍即时生效（选本地图、搜索结果、每日源当场落盘并预览）。
+- 图标预览：桌面布局 Tab 中间预览块，按桌面实际像素 1:1 渲染样例图标（`iconSize * widthPixels/1920`）与文字，底部标注「N 列 × M 行 · 图标 X px」，拖 SeekBar/换行列即时刷新。
+- 文字随图标反向缩放 `clamp(96/iconSize, 0.6, 1.15)`，避免大图标下行与行文字互相压盖（桌面 `addCell` 与设置页预览同一规则）。

@@ -80,7 +80,24 @@ public class DesktopSettingsActivity extends Activity {
     private ScrollView desktopScroll;
     private LinearLayout availableApps;
 
+    private ScrollView panelLayout;
+    private LinearLayout panelWallpaper;
+    private LinearLayout panelApps;
+    private TextView tabLayout;
+    private TextView tabWallpaper;
+    private TextView tabApps;
+
+    private ImageView previewIcon;
+    private TextView previewLabel;
+    private TextView previewCaption;
+
     private final List<DesktopEntries.Item> desktopItems = new ArrayList<DesktopEntries.Item>();
+    private final List<String> pendingOrder = new ArrayList<String>();
+    private final Set<String> pendingHidden = new HashSet<String>();
+    private int pendingColumns;
+    private int pendingRows;
+    private int pendingIconSize;
+    private int currentTab = -1;
     private int dragIndex = -1;
 
     private static final String[] SOURCE_IDS = {
@@ -115,10 +132,44 @@ public class DesktopSettingsActivity extends Activity {
         desktopScroll = (ScrollView) findViewById(R.id.desktop_apps_scroll);
         availableApps = (LinearLayout) findViewById(R.id.available_apps);
 
+        panelLayout = (ScrollView) findViewById(R.id.panel_layout);
+        panelWallpaper = (LinearLayout) findViewById(R.id.panel_wallpaper);
+        panelApps = (LinearLayout) findViewById(R.id.panel_apps);
+        tabLayout = (TextView) findViewById(R.id.tab_layout);
+        tabWallpaper = (TextView) findViewById(R.id.tab_wallpaper);
+        tabApps = (TextView) findViewById(R.id.tab_apps);
+        previewIcon = (ImageView) findViewById(R.id.preview_icon);
+        previewLabel = (TextView) findViewById(R.id.preview_label);
+        previewCaption = (TextView) findViewById(R.id.preview_caption);
+
+        tabLayout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                selectTab(0);
+            }
+        });
+        tabWallpaper.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                selectTab(1);
+            }
+        });
+        tabApps.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                selectTab(2);
+            }
+        });
         findViewById(R.id.settings_back).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 finish();
+            }
+        });
+        findViewById(R.id.settings_save).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                saveAndReturn();
             }
         });
 
@@ -126,6 +177,24 @@ public class DesktopSettingsActivity extends Activity {
         bindWallpaper();
         bindApps();
         showMode();
+        selectTab(0);
+    }
+
+    private void selectTab(int index) {
+        if (currentTab == index) {
+            return;
+        }
+        currentTab = index;
+        TextView[] tabs = { tabLayout, tabWallpaper, tabApps };
+        View[] panels = { panelLayout, panelWallpaper, panelApps };
+        for (int i = 0; i < tabs.length; i++) {
+            boolean selected = i == index;
+            tabs[i].setBackgroundColor(selected ? 0x22FFFFFF : 0x00000000);
+            tabs[i].setTextColor(selected ? 0xFFFFFFFF : 0x88FFFFFF);
+            tabs[i].setTypeface(tabs[i].getTypeface(), selected
+                    ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+            panels[i].setVisibility(selected ? View.VISIBLE : View.GONE);
+        }
     }
 
     // ------------------------------------------------------------ desktop grid
@@ -146,7 +215,8 @@ public class DesktopSettingsActivity extends Activity {
                 android.R.layout.simple_spinner_item, columnLabels);
         columnAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         columns.setAdapter(columnAdapter);
-        columns.setSelection(clampIndex(database.gridColumns() - minColumns, columnLabels.length));
+        pendingColumns = database.gridColumns();
+        columns.setSelection(clampIndex(pendingColumns - minColumns, columnLabels.length));
 
         final int minRows = DesktopDb.MIN_ROWS;
         final int maxRows = DesktopDb.MAX_ROWS;
@@ -158,12 +228,20 @@ public class DesktopSettingsActivity extends Activity {
                 android.R.layout.simple_spinner_item, rowLabels);
         rowAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         rows.setAdapter(rowAdapter);
-        rows.setSelection(clampIndex(database.gridRows() - minRows, rowLabels.length));
+        pendingRows = database.gridRows();
+        rows.setSelection(clampIndex(pendingRows - minRows, rowLabels.length));
+
+        final int minIcon = DesktopDb.MIN_ICON;
+        pendingIconSize = database.iconSize();
+        iconSize.setMax(DesktopDb.MAX_ICON - minIcon);
+        iconSize.setProgress(pendingIconSize - minIcon);
+        iconValue.setText(Integer.toString(pendingIconSize));
 
         columns.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                database.setGridColumns(minColumns + position);
+                pendingColumns = minColumns + position;
+                updatePreview();
             }
 
             @Override
@@ -173,22 +251,20 @@ public class DesktopSettingsActivity extends Activity {
         rows.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                database.setGridRows(minRows + position);
+                pendingRows = minRows + position;
+                updatePreview();
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
             }
         });
-
-        final int minIcon = DesktopDb.MIN_ICON;
-        iconSize.setMax(DesktopDb.MAX_ICON - minIcon);
-        iconSize.setProgress(database.iconSize() - minIcon);
-        iconValue.setText(Integer.toString(database.iconSize()));
         iconSize.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                iconValue.setText(Integer.toString(minIcon + progress));
+                pendingIconSize = minIcon + progress;
+                iconValue.setText(Integer.toString(pendingIconSize));
+                updatePreview();
             }
 
             @Override
@@ -197,9 +273,39 @@ public class DesktopSettingsActivity extends Activity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                database.setIconSize(minIcon + seekBar.getProgress());
             }
         });
+
+        updatePreview();
+    }
+
+    /** Show one cell at the exact pixel size it will take on the home grid. */
+    private void updatePreview() {
+        if (previewIcon == null || previewLabel == null || previewCaption == null) {
+            return;
+        }
+        android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+        float scaleX = metrics.widthPixels / 1920f;
+        float scaleY = metrics.heightPixels / 720f;
+        int iconPx = Math.round(pendingIconSize * scaleX);
+        float labelScale = Math.min(1.15f, Math.max(0.6f, 96f / pendingIconSize));
+        int labelPx = Math.round(28f * scaleY * labelScale);
+        previewIcon.setLayoutParams(new LinearLayout.LayoutParams(iconPx, iconPx));
+        previewIcon.setImageDrawable(sampleIcon());
+        previewLabel.setTextSize(TypedValue.COMPLEX_UNIT_PX, labelPx);
+        previewLabel.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        previewCaption.setText(getString(R.string.preview_caption_format,
+                pendingColumns, pendingRows, pendingIconSize));
+    }
+
+    @SuppressWarnings("deprecation")
+    private Drawable sampleIcon() {
+        try {
+            return getResources().getDrawable(R.mipmap.ic_launcher_home);
+        } catch (Exception ex) {
+            return getResources().getDrawable(android.R.drawable.sym_def_app_icon);
+        }
     }
 
     private static int clampIndex(int value, int size) {
@@ -599,27 +705,42 @@ public class DesktopSettingsActivity extends Activity {
     // ------------------------------------------------------------- app manager
 
     private void bindApps() {
-        desktopItems.clear();
-        Set<String> hidden = new HashSet<String>();
+        pendingOrder.clear();
+        List<String> stored = database.displayOrder();
+        if (stored != null) {
+            pendingOrder.addAll(stored);
+        }
+        pendingHidden.clear();
         List<DesktopEntries.Item> source = DesktopEntries.source(this, FavoriteCatalog.theme(this),
-                database.displayOrder());
+                pendingOrder);
         for (int i = 0; i < source.size(); i++) {
             if (database.isHidden(source.get(i).key)) {
-                hidden.add(source.get(i).key);
+                pendingHidden.add(source.get(i).key);
             }
         }
-        List<DesktopEntries.Item> visible = DesktopEntries.arrange(source, database.displayOrder(),
-                hidden, false);
+        rebuildItems();
+    }
+
+    private void rebuildItems() {
+        desktopItems.clear();
+        List<DesktopEntries.Item> source = DesktopEntries.source(this, FavoriteCatalog.theme(this),
+                pendingOrder);
+        List<DesktopEntries.Item> visible = DesktopEntries.arrange(source, pendingOrder,
+                pendingHidden, false);
         for (int i = 0; i < visible.size(); i++) {
             if (!visible.get(i).settings) {
                 desktopItems.add(visible.get(i));
             }
         }
+        renderDesktopItems();
+        bindAvailable();
+    }
+
+    private void renderDesktopItems() {
         desktopApps.removeAllViews();
         for (int i = 0; i < desktopItems.size(); i++) {
             desktopApps.addView(desktopRow(i));
         }
-        bindAvailable();
     }
 
     private View desktopRow(final int index) {
@@ -666,8 +787,8 @@ public class DesktopSettingsActivity extends Activity {
         remove.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                database.setHidden(item.key, true);
-                bindApps();
+                pendingHidden.add(item.key);
+                rebuildItems();
             }
         });
         row.addView(remove, new LinearLayout.LayoutParams(
@@ -701,7 +822,7 @@ public class DesktopSettingsActivity extends Activity {
             case MotionEvent.ACTION_CANCEL:
                 row.setBackgroundColor(0x00000000);
                 dragIndex = -1;
-                saveOrder();
+                syncPendingOrder();
                 return true;
             default:
                 return false;
@@ -744,12 +865,11 @@ public class DesktopSettingsActivity extends Activity {
         }
     }
 
-    private void saveOrder() {
-        List<String> keys = new ArrayList<String>();
+    private void syncPendingOrder() {
+        pendingOrder.clear();
         for (int i = 0; i < desktopItems.size(); i++) {
-            keys.add(desktopItems.get(i).key);
+            pendingOrder.add(desktopItems.get(i).key);
         }
-        database.setDisplayOrder(keys);
     }
 
     private void bindAvailable() {
@@ -808,16 +928,10 @@ public class DesktopSettingsActivity extends Activity {
     }
 
     private void addToDesktop(LaunchableApp app) {
-        database.setHidden(app.key(), false);
-        List<String> order = new ArrayList<String>();
-        List<String> stored = database.displayOrder();
-        if (stored != null) {
-            order.addAll(stored);
-        }
-        order.remove(app.key());
-        order.add(app.key());
-        database.setDisplayOrder(order);
-        bindApps();
+        pendingHidden.remove(app.key());
+        pendingOrder.remove(app.key());
+        pendingOrder.add(app.key());
+        rebuildItems();
     }
 
     @SuppressWarnings("deprecation")
@@ -826,6 +940,36 @@ public class DesktopSettingsActivity extends Activity {
             return getResources().getDrawable(item.iconRes);
         }
         return installed.icon(new LaunchableApp(item.packageName, item.className, item.title));
+    }
+
+    private void saveAndReturn() {
+        database.setGridColumns(pendingColumns);
+        database.setGridRows(pendingRows);
+        database.setIconSize(pendingIconSize);
+        syncPendingOrder();
+        database.setDisplayOrder(pendingOrder);
+        Set<String> hidden = new HashSet<String>(pendingHidden);
+        for (int i = 0; i < desktopItems.size(); i++) {
+            hidden.remove(desktopItems.get(i).key);
+        }
+        for (String key : pendingHidden) {
+            database.setHidden(key, true);
+        }
+        for (String key : hidden) {
+            database.setHidden(key, false);
+        }
+        for (int i = 0; i < desktopItems.size(); i++) {
+            database.setHidden(desktopItems.get(i).key, false);
+        }
+        Toast.makeText(this, R.string.settings_saved, Toast.LENGTH_SHORT).show();
+        Intent home = new Intent(this, MainActivity.class);
+        home.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        try {
+            startActivity(home);
+        } catch (Exception ex) {
+            // LauncherWT is not the current home task; still leave settings.
+        }
+        finish();
     }
 
     private static void close(Closeable closeable) {

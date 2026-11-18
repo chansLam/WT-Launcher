@@ -54,4 +54,13 @@
     <string name="grid_rows_label">行</string>
     <string name="icon_size_label">图标</string>
     <string name="desktop_layout_hint">改完返回桌面即生效；图标大小 64~160</string>
+    <string name="desktop_settings_title">桌面设置</string>
+    <string name="tab_desktop_layout">桌面布局</string>
+    <string name="tab_wallpaper">壁纸设置</string>
+    <string name="tab_apps">应用管理</string>
+    <string name="settings_save_back">保存并返回桌面</string>
+    <string name="settings_saved">已保存</string>
+    <string name="settings_discarded">未保存的改动已放弃</string>
+    <string name="preview_label">应用</string>
+    <string name="preview_caption_format">%1$d 列 × %2$d 行 · 图标 %3$d px</string>
 </resources>
