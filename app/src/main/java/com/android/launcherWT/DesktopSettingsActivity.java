@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -93,6 +94,8 @@ public class DesktopSettingsActivity extends Activity {
     private String selectedCategory = WallpaperCategory.POPULAR;
 
     private LinearLayout previewGrid;
+    private LinearLayout previewDots;
+    private View pickLocalButton;
     private View previewArea;
     private TextView previewCaption;
 
@@ -146,6 +149,8 @@ public class DesktopSettingsActivity extends Activity {
         recommendResults = (LinearLayout) findViewById(R.id.recommend_results);
         recommendStatus = (TextView) findViewById(R.id.recommend_status);
         previewGrid = (LinearLayout) findViewById(R.id.preview_grid);
+        previewDots = (LinearLayout) findViewById(R.id.preview_dots);
+        pickLocalButton = findViewById(R.id.pick_local);
         previewCaption = (TextView) findViewById(R.id.preview_caption);
 
         tabLayout.setOnClickListener(new View.OnClickListener() {
@@ -311,10 +316,12 @@ public class DesktopSettingsActivity extends Activity {
         int innerHeight = Math.max(1, boxHeight - padTop - padBottom);
         int cellWidth = innerWidth / columns;
         int cellHeight = innerHeight / rows;
-        int labelPx = Math.max(9, Math.round(28f * scaleY));
-        int gap = Math.max(1, Math.round(6f * scaleY));
+        int labelPx = Math.max(18, Math.round(28f * scaleY));
+        // Text needs a little more room than its glyph size, otherwise it gets clipped.
+        int labelBox = Math.round(labelPx * 1.5f);
+        int gap = Math.max(1, Math.round(5f * scaleY));
         int iconPx = Math.round(pendingIconSize * scaleX);
-        int maxIcon = cellHeight - labelPx - gap;
+        int maxIcon = cellHeight - labelBox - gap;
         iconPx = Math.min(iconPx, Math.max(10, maxIcon));
         iconPx = Math.min(iconPx, cellWidth - gap);
 
@@ -341,8 +348,7 @@ public class DesktopSettingsActivity extends Activity {
                 name.setText(R.string.preview_label);
                 name.setTextColor(0xFFFFFFFF);
                 name.setSingleLine(true);
-                name.setTypeface(android.graphics.Typeface.create("sans-serif-condensed",
-                        android.graphics.Typeface.NORMAL));
+                name.setTypeface(android.graphics.Typeface.DEFAULT);
                 name.setTextSize(TypedValue.COMPLEX_UNIT_PX, labelPx);
                 LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -356,8 +362,40 @@ public class DesktopSettingsActivity extends Activity {
             }
             previewGrid.addView(row);
         }
+        showPageDots(columns * rows);
         previewCaption.setText(getString(R.string.preview_caption_format,
                 pendingColumns, pendingRows, pendingIconSize));
+    }
+
+    /** Page indicator under the board, the same short dashes the real desktop draws. */
+    private void showPageDots(int perPage) {
+        if (previewDots == null) {
+            return;
+        }
+        previewDots.removeAllViews();
+        int visibleCount = 0;
+        for (int i = 0; i < desktopItems.size(); i++) {
+            if (!pendingHidden.contains(desktopItems.get(i).key)) {
+                visibleCount++;
+            }
+        }
+        int pages = perPage <= 0 ? 1 : Math.max(1, (visibleCount + perPage - 1) / perPage);
+        int width = dp(24);
+        int height = dp(5);
+        int margin = dp(5);
+        for (int i = 0; i < pages; i++) {
+            View dot = new View(this);
+            GradientDrawable shape = new GradientDrawable();
+            shape.setShape(GradientDrawable.RECTANGLE);
+            shape.setCornerRadius(dp(2));
+            shape.setColor(i == 0 ? 0xB3FFFFFF : 0x3DFFFFFF);
+            dot.setBackgroundDrawable(shape);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(width, height);
+            params.leftMargin = margin;
+            params.rightMargin = margin;
+            dot.setLayoutParams(params);
+            previewDots.addView(dot);
+        }
     }
 
     /** Classic-theme icons, cycled, so the preview looks like the real desktop. */
@@ -457,6 +495,22 @@ public class DesktopSettingsActivity extends Activity {
         showPanels(mode);
     }
 
+    private void styleModeRadios() {
+        int checked = wallpaperMode.getCheckedRadioButtonId();
+        for (int i = 0; i < wallpaperMode.getChildCount(); i++) {
+            View child = wallpaperMode.getChildAt(i);
+            if (!(child instanceof android.widget.RadioButton) || child.getId() == View.NO_ID) {
+                continue;
+            }
+            boolean on = child.getId() == checked;
+            child.setBackgroundColor(on ? 0x33FFFFFF : 0x00000000);
+            android.widget.RadioButton button = (android.widget.RadioButton) child;
+            button.setTextColor(on ? 0xFFFFFFFF : 0x99FFFFFF);
+            button.setTypeface(android.graphics.Typeface.DEFAULT, on
+                    ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+        }
+    }
+
     private void showMode() {
         WallpaperMode mode = database.wallpaperMode();
         adjustingRadios = true;
@@ -468,17 +522,25 @@ public class DesktopSettingsActivity extends Activity {
             wallpaperMode.check(R.id.mode_default);
         }
         adjustingRadios = false;
+        styleModeRadios();
         showPanels(mode);
         showSource();
         showPreview();
     }
 
     private void showPanels(WallpaperMode mode) {
-        localPanel.setVisibility(mode == WallpaperMode.CUSTOM && !searchSelected()
-                ? View.VISIBLE : View.GONE);
-        dailyPanel.setVisibility(mode == WallpaperMode.DAILY ? View.VISIBLE : View.GONE);
-        searchPanel.setVisibility(mode == WallpaperMode.CUSTOM && searchSelected()
-                ? View.VISIBLE : View.GONE);
+        boolean custom = mode == WallpaperMode.CUSTOM;
+        boolean local = custom && !searchSelected();
+        localPanel.setVisibility(local ? View.VISIBLE : View.GONE);
+        if (pickLocalButton != null) {
+            pickLocalButton.setVisibility(local ? View.VISIBLE : View.GONE);
+        }
+        boolean daily = mode == WallpaperMode.DAILY;
+        dailyPanel.setVisibility(daily ? View.VISIBLE : View.GONE);
+        if (sourceSpinner != null) {
+            sourceSpinner.setVisibility(daily ? View.VISIBLE : View.GONE);
+        }
+        searchPanel.setVisibility(custom && searchSelected() ? View.VISIBLE : View.GONE);
     }
 
     private boolean searchSelected() {
@@ -780,14 +842,16 @@ public class DesktopSettingsActivity extends Activity {
         }
         haven.append("purity=100&atleast=1920x720&ratios=16x9,21x9&sorting=toplist&topRange=1M");
         String havenJson = BingClient.fetchText(this, haven.toString());
-        String upxJson = BingClient.fetchText(this,
-                "https://wp.upx8.com/api.php?format=json&content=" + encode(category.upx8Query) + "&count=6");
-
         List<List<ImageSearch.Hit>> groups = new ArrayList<List<ImageSearch.Hit>>();
         groups.add(ImageSearch.parseBing(bingHtml));
         groups.add(ImageSearch.parseWallhaven(havenJson));
-        groups.add(ImageSearch.parseUpx8(upxJson));
-        return ImageSearch.mergeAll(groups);
+        for (int i = 0; i < category.keywords.length; i++) {
+            String upxJson = BingClient.fetchText(this,
+                    "https://wp.upx8.com/api.php?format=json&content="
+                            + encode(category.keywords[i]) + "&count=9");
+            groups.add(ImageSearch.parseUpx8(upxJson, 9));
+        }
+        return ImageSearch.mergeAll(groups, 28);
     }
 
     private String encode(String text) {

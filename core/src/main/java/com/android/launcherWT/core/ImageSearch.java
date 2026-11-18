@@ -162,13 +162,17 @@ public final class ImageSearch {
     }
 
     public static List<Hit> mergeAll(List<List<Hit>> groups) {
+        return mergeAll(groups, 18);
+    }
+
+    public static List<Hit> mergeAll(List<List<Hit>> groups, int max) {
         List<Hit> hits = new ArrayList<Hit>();
         if (groups == null || groups.isEmpty()) {
             return hits;
         }
         int[] index = new int[groups.size()];
         boolean pending = true;
-        while (hits.size() < 18 && pending) {
+        while (hits.size() < max && pending) {
             pending = false;
             for (int g = 0; g < groups.size(); g++) {
                 List<Hit> group = groups.get(g);
@@ -179,7 +183,7 @@ public final class ImageSearch {
                     addUnique(hits, group.get(index[g]));
                     index[g]++;
                     pending = true;
-                    if (hits.size() >= 18) {
+                    if (hits.size() >= max) {
                         break;
                     }
                 }
@@ -418,14 +422,23 @@ public final class ImageSearch {
         return url.toString().replace("\\u0026", "&");
     }
 
-    /** UP.UPX8 keyword search: flat JSON array with url and title per item. */
+    /** UP.UPX8 keyword search: flat JSON array with url, resolution and title per item. */
     public static List<Hit> parseUpx8(String json) {
+        return parseUpx8(json, 12);
+    }
+
+    /**
+     * UPX8 items carry a "resolution" string such as 1920x1080. Keep only the ones
+     * that can cover the home screen, so the recommendation row is not filled with
+     * small pictures.
+     */
+    public static List<Hit> parseUpx8(String json, int max) {
         List<Hit> hits = new ArrayList<Hit>();
         if (json == null) {
             return hits;
         }
         int from = 0;
-        while (hits.size() < 6) {
+        while (hits.size() < max) {
             int at = json.indexOf("\"url\":\"", from);
             if (at < 0) {
                 break;
@@ -437,10 +450,49 @@ public final class ImageSearch {
             }
             String url = json.substring(start, end).replace("\\/", "/");
             from = end;
-            if (url.startsWith("http")) {
-                hits.add(new Hit(url, url));
+            if (!url.startsWith("http")) {
+                continue;
             }
+            int windowEnd = Math.min(json.length(), at + 260);
+            int width = 0;
+            int height = 0;
+            int resAt = json.indexOf("\"resolution\":\"", at);
+            if (resAt >= 0 && resAt <= windowEnd) {
+                int x = json.indexOf('x', resAt);
+                if (x > 0) {
+                    width = quotedDigits(json, resAt + 14, x);
+                    height = quotedDigits(json, x + 1, windowEnd);
+                }
+            }
+            if (width > 0 && height > 0) {
+                if (width < MIN_WIDTH || height < MIN_HEIGHT) {
+                    continue;
+                }
+            }
+            hits.add(new Hit(url, url));
         }
         return hits;
+    }
+
+    private static int quotedDigits(String json, int start, int limit) {
+        StringBuilder digits = new StringBuilder();
+        for (int i = start; i < limit && i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (c >= '0' && c <= '9') {
+                digits.append(c);
+            } else if (digits.length() > 0) {
+                break;
+            } else if (c != '"' && c != ' ') {
+                break;
+            }
+        }
+        if (digits.length() == 0) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(digits.toString());
+        } catch (NumberFormatException ex) {
+            return 0;
+        }
     }
 }
