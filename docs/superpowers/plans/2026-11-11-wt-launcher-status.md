@@ -150,3 +150,13 @@ git commit -m "feat: show vehicle status only when the service is up"
 - `AndroidManifest.xml` 补上原 APK 有的 `READ_PHONE_STATE`
 
 验证：`:core:test` 31 用例通过，`:app:assembleDebug` BUILD SUCCESSFUL。
+
+## 行为对齐（2026-11-18，5 项）
+
+依据原版 `AppsContentView.onItemClick / startAppsActivity`、`AppsManager`、`TopRightView.setThemeType(1)`：
+
+1. 点击统计：`OriginalHomeView` 构造时 `DataStatisticsManager.initSdk(context)`（Throwable 兜底），每次点击先 `sendEvents(context, packageName, null)`。
+2. 语音门禁：点击语音项前读 `Settings.System wt_speech_ready`，非 1 弹 `speech_content` 并不拉起；`SettingNotFoundException` 时按原版放行。
+3. 主题实时：`onAttachedToWindow` 用 `IOnThemeChange.Stub` 注册 `SettingServiceManager`，回调 `post(reload())` 刷新背景/图标/指示器；`onDetachedFromWindow` 注销。
+4. 安全模式：`HomeLaunch` 在 start / startSpeech 前判 `pm.isSafeMode() && !Utilities.isSystemApp()`，命中弹 `safe_mode_error` 并 return。
+5. 状态栏：`StatusCluster` 由夜间判断改为固定 `setCurTheme(1)`（等价 `TopRightView.setThemeType(1)`）。
