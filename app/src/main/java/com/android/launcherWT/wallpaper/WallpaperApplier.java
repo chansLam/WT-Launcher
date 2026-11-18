@@ -188,6 +188,9 @@ public final class WallpaperApplier {
         if (DailyFeeds.YUMUS.equals(source)) {
             return DailyFeeds.fromYumus(BingClient.YUMUS_BING, dayStamp());
         }
+        if (DailyFeeds.VSAA.equals(source)) {
+            return DailyFeeds.fromVsaa(BingClient.fetchJson(context, BingClient.VSAA_DAILY), dayStamp());
+        }
         return null;
     }
 
@@ -198,6 +201,7 @@ public final class WallpaperApplier {
         addPick(picks, loadSource(context, DailyFeeds.WALLHAVEN));
         addPick(picks, loadSource(context, DailyFeeds.ZZZMH));
         addPick(picks, loadSource(context, DailyFeeds.PEAPIX));
+        addPick(picks, loadSource(context, DailyFeeds.VSAA));
         addPick(picks, loadSource(context, DailyFeeds.TODAYBING));
         addPick(picks, loadSource(context, DailyFeeds.UPX8));
         addPick(picks, loadSource(context, DailyFeeds.YUMUS));

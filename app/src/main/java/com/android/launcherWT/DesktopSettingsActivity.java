@@ -773,7 +773,7 @@ public class DesktopSettingsActivity extends Activity {
                     encoded = text;
                 }
                 String bingHtml = BingClient.fetchText(DesktopSettingsActivity.this,
-                        "https://www.bing.com/images/async?q=" + encoded
+                        "https://cn.bing.com/images/async?q=" + encoded
                                 + "&first=0&count=35&mmasync=1&adlt=strict"
                                 + "&qft=%2Bfilterui:aspect-wide%2Bfilterui:imagesize-large");
                 String wallhaven = BingClient.fetchText(DesktopSettingsActivity.this,
@@ -782,7 +782,7 @@ public class DesktopSettingsActivity extends Activity {
                 String zzzHtml = BingClient.fetchText(DesktopSettingsActivity.this,
                         "https://bz.zzzmh.cn/search?q=" + encoded + "&r=ultra");
                 String upxJson = BingClient.fetchText(DesktopSettingsActivity.this,
-                        "https://wp.upx8.com/api.php?format=json&content=" + encoded + "&count=3");
+                        "https://wp.upx8.com/api.php?format=json&content=" + encoded + "&count=10&resolution=1920x1080");
                 List<ImageSearch.Hit> bingHits = ImageSearch.parseBing(bingHtml);
                 List<ImageSearch.Hit> havenHits = ImageSearch.parseWallhaven(wallhaven);
                 List<ImageSearch.Hit> zzzHits = zzzmhHits(zzzHtml);
@@ -924,7 +924,7 @@ public class DesktopSettingsActivity extends Activity {
     private List<ImageSearch.Hit> loadRecommends(WallpaperCategory category) {
         String bingQuery = encode(category.bingQuery);
         String bingHtml = BingClient.fetchText(this,
-                "https://www.bing.com/images/async?q=" + bingQuery
+                "https://cn.bing.com/images/async?q=" + bingQuery
                         + "&first=0&count=35&mmasync=1&adlt=strict"
                         + "&qft=%2Bfilterui:aspect-wide%2Bfilterui:imagesize-large");
         StringBuilder haven = new StringBuilder("https://wallhaven.cc/api/v1/search?");
@@ -942,8 +942,8 @@ public class DesktopSettingsActivity extends Activity {
         for (int i = 0; i < category.keywords.length; i++) {
             String upxJson = BingClient.fetchText(this,
                     "https://wp.upx8.com/api.php?format=json&content="
-                            + encode(category.keywords[i]) + "&count=9");
-            groups.add(ImageSearch.parseUpx8(upxJson, 9));
+                            + encode(category.keywords[i]) + "&count=10&resolution=1920x1080");
+            groups.add(ImageSearch.parseUpx8(upxJson, 10));
         }
         return ImageSearch.mergeAll(groups, 28);
     }

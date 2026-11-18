@@ -21,12 +21,15 @@ android {
         car {
             dimension "channel"
             targetSdk 19
+            // 车机 i.MX6Q 只有 32 位 ARM，带上 conscrypt 的其它 ABI 只会白白撑大包
+            ndk { abiFilters "armeabi-v7a" }
         }
         avd {
             dimension "channel"
             applicationIdSuffix ".avd"
             versionNameSuffix "-avd"
             targetSdk 33
+            ndk { abiFilters "x86" }
         }
     }
 
@@ -69,5 +72,9 @@ dependencies {
     implementation "com.android.support:recyclerview-v7:27.1.1"
     implementation "com.android.support.constraint:constraint-layout:1.1.3"
     implementation "com.google.code.gson:gson:2.8.6"
+    // 车机（API19）上壁纸站点普遍连不通：系统 SSL 是 2010 年的 OpenSSL，根证书停在 2013 年。
+    // okhttp 3.12 是最后一条兼容 API19 的线，conscrypt 2.5.2 提供 BoringSSL 的 TLS1.2。
+    implementation "com.squareup.okhttp3:okhttp:3.12.13"
+    implementation "org.conscrypt:conscrypt-android:2.5.2"
     compileOnly project(":platform-stubs")
 }

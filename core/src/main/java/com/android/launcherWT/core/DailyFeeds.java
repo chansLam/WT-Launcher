@@ -11,6 +11,7 @@ public final class DailyFeeds {
     public static final String TODAYBING = "todaybing";
     public static final String UPX8 = "upx8";
     public static final String YUMUS = "yumus";
+    public static final String VSAA = "vsaa";
 
     private DailyFeeds() {
     }
@@ -137,6 +138,18 @@ public final class DailyFeeds {
             return null;
         }
         return new DailyPick(YUMUS, YUMUS + ":" + day, imageUrl);
+    }
+
+    /** VSAA toolbox wallpaper: {"code":1,"data":{"url":"https://..."}}. */
+    public static DailyPick fromVsaa(String json, String day) {
+        if (json == null || day == null || json.indexOf("\"code\":1") < 0) {
+            return null;
+        }
+        String url = quotedValue(json, "url");
+        if (url == null) {
+            return null;
+        }
+        return new DailyPick(VSAA, VSAA + ":" + day, unescape(url));
     }
 
     private static String quotedValue(String json, String field) {
