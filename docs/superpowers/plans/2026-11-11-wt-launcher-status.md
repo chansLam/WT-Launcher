@@ -233,3 +233,8 @@ git commit -m "feat: show vehicle status only when the service is up"
 - 原因：Android 13/14 的安装器拒绝 targetSdk < 23 的包（表现为 INSTALL_FAILED_INVALID_APK），AVD 包必须抬高 targetSdk；车机包保持 19。
 - 清单补 `QUERY_ALL_PACKAGES`（targetSdk ≥ 30 时查询已安装应用需要，API 19 上可忽略）。
 - 构建命令：车机 `./gradlew :core:test :app:assembleCarDebug`；模拟器 `./gradlew :app:assembleAvdDebug`（产物 app/build/outputs/apk/avd/debug/app-avd-debug.apk）。
+
+## 桌面栅格渲染修复
+- 症状：桌面只显示第一个图标，其余图标与所有应用名都不可见；`uiautomator dump` 里只有时钟一个 TextView。
+- 原因：`OriginalHomeView.onLayout` 里手工 `cell/icon/label.layout()`，与空实现的 `Board`（ViewGroup.onLayout 为空）和子 `LinearLayout` 自身的测量/布局互相打架，只有首个 child 的 frame 生效，其余 child 位置错误或宽高为 0，被当作不可见。
+- 修复：`Board` 变成真正的栅格容器——`configure(pageWidth, columns, rows, pages, pads)` 后在 `onMeasure` 用 EXACTLY(cellW/cellH) 测量每个 child，在 `onLayout` 按 页/列/行 摆放；单元格内部改用标准 `LinearLayout.LayoutParams`（图标定宽定高、文字 wrap + topMargin），删除 `layoutCells` 与手工 frame。列行、图标尺寸改动时只需重测。

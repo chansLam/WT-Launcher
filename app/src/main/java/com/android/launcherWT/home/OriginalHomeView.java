@@ -156,17 +156,67 @@ public class OriginalHomeView extends FrameLayout {
     }
 
     private static final class Board extends ViewGroup {
+        private int pageWidth;
+        private int columns = DesktopState.DEFAULT_COLUMNS;
+        private int rows = DesktopState.DEFAULT_ROWS;
+        private int padLeft;
+        private int padRight;
+        private int padTop;
+        private int padBottom;
+        private int pages = 1;
+
         Board(Context context) {
             super(context);
         }
 
+        void configure(int pageWidth, int columns, int rows, int pages,
+                int padLeft, int padRight, int padTop, int padBottom) {
+            this.pageWidth = pageWidth;
+            this.columns = Math.max(1, columns);
+            this.rows = Math.max(1, rows);
+            this.pages = Math.max(1, pages);
+            this.padLeft = padLeft;
+            this.padRight = padRight;
+            this.padTop = padTop;
+            this.padBottom = padBottom;
+        }
+
+        int cellWidth() {
+            return Math.max(1, (pageWidth - padLeft - padRight) / columns);
+        }
+
+        int cellHeight() {
+            return Math.max(1, (getHeight() - padTop - padBottom) / rows);
+        }
+
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.getSize(heightMeasureSpec));
+            int width = MeasureSpec.getSize(widthMeasureSpec);
+            int height = MeasureSpec.getSize(heightMeasureSpec);
+            setMeasuredDimension(width, height);
+            int cellWidth = cellWidth();
+            int cellHeight = Math.max(1, (height - padTop - padBottom) / rows);
+            int specW = MeasureSpec.makeMeasureSpec(cellWidth, MeasureSpec.EXACTLY);
+            int specH = MeasureSpec.makeMeasureSpec(cellHeight, MeasureSpec.EXACTLY);
+            for (int i = 0; i < getChildCount(); i++) {
+                getChildAt(i).measure(specW, specH);
+            }
         }
 
         @Override
         protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+            int cellWidth = cellWidth();
+            int perPage = columns * rows;
+            int cellHeight = Math.max(1, (bottom - top - padTop - padBottom) / rows);
+            for (int i = 0; i < getChildCount(); i++) {
+                int page = i / perPage;
+                int slot = i % perPage;
+                int column = slot % columns;
+                int row = slot / columns;
+                int cellLeft = page * pageWidth + padLeft + column * cellWidth;
+                int cellTop = padTop + row * cellHeight;
+                getChildAt(i).layout(cellLeft, cellTop, cellLeft + cellWidth, cellTop + cellHeight);
+            }
         }
     }
 
@@ -267,13 +317,24 @@ public class OriginalHomeView extends FrameLayout {
 
     @SuppressWarnings("deprecation")
     private void addCell(String title, Drawable icon, OnClickListener click) {
+        int viewWidth = getWidth() > 0 ? getWidth() : DESIGN_W;
+        int viewHeight = getHeight() > 0 ? getHeight() : DESIGN_H;
+        float scaleX = viewWidth / (float) DESIGN_W;
+        float scaleY = viewHeight / (float) DESIGN_H;
+        float iconScale = Math.max(0.5f, iconSizeDesign / (float) DesktopState.DEFAULT_ICON_SIZE);
+        int iconPx = Math.round(iconSizeDesign * scaleX);
+        int labelPx = Math.round(28f * scaleY * Math.min(1.5f, iconScale));
+
         LinearLayout cell = new LinearLayout(getContext());
         cell.setOrientation(LinearLayout.VERTICAL);
-        cell.setGravity(Gravity.CENTER_HORIZONTAL);
+        cell.setGravity(Gravity.CENTER);
 
         ImageView image = new ImageView(getContext());
         image.setScaleType(ImageView.ScaleType.FIT_CENTER);
         image.setImageDrawable(icon);
+        LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(iconPx, iconPx);
+        imageParams.gravity = Gravity.CENTER_HORIZONTAL;
+        image.setLayoutParams(imageParams);
         cell.addView(image);
 
         TextView label = new TextView(getContext());
@@ -283,6 +344,12 @@ public class OriginalHomeView extends FrameLayout {
         label.setSingleLine(true);
         label.setEllipsize(TextUtils.TruncateAt.MARQUEE);
         label.setTypeface(Typeface.create("sans-serif-condensed", Typeface.NORMAL));
+        label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, labelPx);
+        LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        labelParams.gravity = Gravity.CENTER_HORIZONTAL;
+        labelParams.topMargin = Math.round(8 * scaleY);
+        label.setLayoutParams(labelParams);
         cell.addView(label);
         cell.setOnTouchListener(pressFeedback);
         cell.setOnClickListener(click);
@@ -324,12 +391,14 @@ public class OriginalHomeView extends FrameLayout {
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int width = MeasureSpec.getSize(widthMeasureSpec);
         int height = MeasureSpec.getSize(heightMeasureSpec);
+        int padLeft = Math.round(80 * (width / (float) DESIGN_W));
+        int padRight = padLeft;
+        int padTop = Math.round(64 * (height / (float) DESIGN_H));
+        int padBottom = Math.round(84 * (height / (float) DESIGN_H));
+        board.configure(width, columns, rows, pageCount(), padLeft, padRight, padTop, padBottom);
         int boardWidth = MeasureSpec.makeMeasureSpec(width * pageCount(), MeasureSpec.EXACTLY);
         int boardHeight = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY);
         board.measure(boardWidth, boardHeight);
-        for (int i = 0; i < cells.size(); i++) {
-            cells.get(i).measure(boardWidth, boardHeight);
-        }
         status.view().measure(
                 MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST),
                 MeasureSpec.makeMeasureSpec(status.heightPx(), MeasureSpec.EXACTLY));
@@ -343,7 +412,6 @@ public class OriginalHomeView extends FrameLayout {
         float sx = width / (float) DESIGN_W;
         float sy = height / (float) DESIGN_H;
         board.layout(0, 0, width * pageCount(), height);
-        layoutCells(width, sx, sy);
         View cluster = status.view();
         int clusterTop = status.topMarginPx();
         cluster.layout(width - cluster.getMeasuredWidth(), clusterTop,
@@ -355,53 +423,6 @@ public class OriginalHomeView extends FrameLayout {
 
     private int pageSize() {
         return Math.max(1, columns * rows);
-    }
-
-    private int viewHeight() {
-        return getHeight() > 0 ? getHeight() : DESIGN_H;
-    }
-
-    private void layoutCells(int width, float sx, float sy) {
-        int padLeft = Math.round(80 * sx);
-        int padRight = Math.round(80 * sx);
-        int padTop = Math.round(64 * sy);
-        int padBottom = Math.round(84 * sy);
-        int gridWidth = Math.max(1, width - padLeft - padRight);
-        int cellWidth = gridWidth / Math.max(1, columns);
-        int gridHeight = Math.max(1, viewHeight() - padTop - padBottom);
-        int cellHeight = gridHeight / Math.max(1, rows);
-        float iconScale = Math.max(0.5f, iconSizeDesign / (float) DesktopState.DEFAULT_ICON_SIZE);
-        int iconSize = Math.round(iconSizeDesign * sx);
-        int labelText = Math.round(28f * sy * Math.min(1.5f, iconScale));
-        int labelGap = Math.round(8 * sy);
-        for (int i = 0; i < cells.size(); i++) {
-            int pageIndex = i / pageSize();
-            int slot = i % pageSize();
-            int column = slot % columns;
-            int row = slot / columns;
-            View cell = cells.get(i);
-            int cellLeft = pageIndex * width + padLeft + column * cellWidth;
-            int cellTop = padTop + row * cellHeight;
-            cell.layout(cellLeft, cellTop, cellLeft + cellWidth, cellTop + cellHeight);
-
-            TextView label = labels.get(i);
-            label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, labelText);
-            label.measure(
-                    MeasureSpec.makeMeasureSpec(cellWidth, MeasureSpec.EXACTLY),
-                    MeasureSpec.makeMeasureSpec(cellHeight, MeasureSpec.AT_MOST));
-            int labelHeight = label.getMeasuredHeight();
-            int contentHeight = iconSize + labelGap + labelHeight;
-            int contentTop = cellTop + Math.max(0, (cellHeight - contentHeight) / 2);
-
-            ImageView icon = icons.get(i);
-            int iconLeft = cellLeft + (cellWidth - iconSize) / 2;
-            icon.layout(iconLeft, contentTop, iconLeft + iconSize, contentTop + iconSize);
-
-            int labelTop = contentTop + iconSize + labelGap;
-            int labelLeft = cellLeft + Math.max(0, (cellWidth - label.getMeasuredWidth()) / 2);
-            label.layout(labelLeft, labelTop, labelLeft + label.getMeasuredWidth(),
-                    labelTop + labelHeight);
-        }
     }
 
     private int pageCount() {
