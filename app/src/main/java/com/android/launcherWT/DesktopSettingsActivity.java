@@ -54,6 +54,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -767,6 +769,15 @@ public class DesktopSettingsActivity extends Activity {
         return temp.renameTo(dest);
     }
 
+    @Override
+    protected void onDestroy() {
+        if (thumbPool != null) {
+            thumbPool.shutdownNow();
+            thumbPool = null;
+        }
+        super.onDestroy();
+    }
+
     private void search() {
         final String text = query.getText().toString().trim();
         if (text.length() == 0) {
@@ -776,52 +787,41 @@ public class DesktopSettingsActivity extends Activity {
         final int generation = searchGeneration.incrementAndGet();
         status.setText(R.string.wallpaper_searching);
         results.removeAllViews();
-        new Thread(new Runnable() {
+        final String encoded = encode(text);
+        List<HitFetcher> fetchers = new ArrayList<HitFetcher>();
+        fetchers.add(new HitFetcher() {
             @Override
-            public void run() {
-                String encoded = text;
-                try {
-                    encoded = URLEncoder.encode(text, "UTF-8");
-                } catch (Exception ex) {
-                    encoded = text;
-                }
-                String bingHtml = BingClient.fetchText(DesktopSettingsActivity.this,
+            public List<ImageSearch.Hit> fetch() {
+                return ImageSearch.parseBing(BingClient.fetchText(DesktopSettingsActivity.this,
                         "https://cn.bing.com/images/async?q=" + encoded
                                 + "&first=0&count=35&mmasync=1&adlt=strict"
-                                + "&qft=%2Bfilterui:aspect-wide%2Bfilterui:imagesize-large");
-                String wallhaven = BingClient.fetchText(DesktopSettingsActivity.this,
-                        "https://wallhaven.cc/api/v1/search?q=" + encoded
-                                + "&purity=100&atleast=1920x720&ratios=16x9,21x9&sorting=relevance");
-                String zzzHtml = BingClient.fetchText(DesktopSettingsActivity.this,
-                        "https://bz.zzzmh.cn/search?q=" + encoded + "&r=ultra");
-                String upxJson = BingClient.fetchText(DesktopSettingsActivity.this,
-                        "https://wp.upx8.com/api.php?format=json&content=" + encoded + "&count=10&resolution=1920x1080");
-                List<ImageSearch.Hit> bingHits = ImageSearch.parseBing(bingHtml);
-                List<ImageSearch.Hit> havenHits = ImageSearch.parseWallhaven(wallhaven);
-                List<ImageSearch.Hit> zzzHits = zzzmhHits(zzzHtml);
-                List<ImageSearch.Hit> upxHits = ImageSearch.parseUpx8(upxJson);
-                List<List<ImageSearch.Hit>> groups = new ArrayList<List<ImageSearch.Hit>>();
-                groups.add(bingHits);
-                groups.add(havenHits);
-                groups.add(zzzHits);
-                groups.add(upxHits);
-                final List<ImageSearch.Hit> hits = ImageSearch.mergeAll(groups);
-                main.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (generation != searchGeneration.get()) {
-                            return;
-                        }
-                        if (hits.isEmpty()) {
-                            status.setText(R.string.wallpaper_search_empty);
-                            return;
-                        }
-                        status.setText("");
-                        showHits(hits, results, status);
-                    }
-                });
+                                + "&qft=%2Bfilterui:aspect-wide%2Bfilterui:imagesize-large"));
             }
-        }).start();
+        });
+        fetchers.add(new HitFetcher() {
+            @Override
+            public List<ImageSearch.Hit> fetch() {
+                return ImageSearch.parseWallhaven(BingClient.fetchText(DesktopSettingsActivity.this,
+                        "https://wallhaven.cc/api/v1/search?q=" + encoded
+                                + "&purity=100&atleast=1920x720&ratios=16x9,21x9&sorting=relevance"));
+            }
+        });
+        fetchers.add(new HitFetcher() {
+            @Override
+            public List<ImageSearch.Hit> fetch() {
+                return zzzmhHits(BingClient.fetchText(DesktopSettingsActivity.this,
+                        "https://bz.zzzmh.cn/search?q=" + encoded + "&r=ultra"));
+            }
+        });
+        fetchers.add(new HitFetcher() {
+            @Override
+            public List<ImageSearch.Hit> fetch() {
+                return ImageSearch.parseUpx8(BingClient.fetchText(DesktopSettingsActivity.this,
+                        "https://wp.upx8.com/api.php?format=json&content=" + encoded
+                                + "&count=10&resolution=1920x1080"));
+            }
+        });
+        streamHits(fetchers, results, status, searchGeneration, generation, 24);
     }
 
     private List<ImageSearch.Hit> zzzmhHits(String html) {
@@ -911,27 +911,45 @@ public class DesktopSettingsActivity extends Activity {
         final int generation = recommendGeneration.incrementAndGet();
         recommendStatus.setText(R.string.recommend_loading);
         recommendResults.removeAllViews();
-        new Thread(new Runnable() {
+        final String bingQuery = encode(category.bingQuery);
+        List<HitFetcher> fetchers = new ArrayList<HitFetcher>();
+        fetchers.add(new HitFetcher() {
             @Override
-            public void run() {
-                List<ImageSearch.Hit> hits = loadRecommends(category);
-                final List<ImageSearch.Hit> shown = hits;
-                main.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (generation != recommendGeneration.get() || isFinishing()) {
-                            return;
-                        }
-                        if (shown.isEmpty()) {
-                            recommendStatus.setText(R.string.recommend_empty);
-                            return;
-                        }
-                        recommendStatus.setText("");
-                        showHits(shown, recommendResults, recommendStatus);
-                    }
-                });
+            public List<ImageSearch.Hit> fetch() {
+                return ImageSearch.parseBing(BingClient.fetchText(DesktopSettingsActivity.this,
+                        "https://cn.bing.com/images/async?q=" + bingQuery
+                                + "&first=0&count=35&mmasync=1&adlt=strict"
+                                + "&qft=%2Bfilterui:aspect-wide%2Bfilterui:imagesize-large"));
             }
-        }, "wallpaper-recommend").start();
+        });
+        StringBuilder haven = new StringBuilder("https://wallhaven.cc/api/v1/search?");
+        if (category.wallhavenQuery.length() > 0) {
+            haven.append("q=").append(encode(category.wallhavenQuery)).append('&');
+        }
+        if (category.wallhavenCategories.length() > 0) {
+            haven.append("categories=").append(category.wallhavenCategories).append('&');
+        }
+        haven.append("purity=100&atleast=1920x720&ratios=16x9,21x9&sorting=toplist&topRange=1M");
+        final String havenUrl = haven.toString();
+        fetchers.add(new HitFetcher() {
+            @Override
+            public List<ImageSearch.Hit> fetch() {
+                return ImageSearch.parseWallhaven(
+                        BingClient.fetchText(DesktopSettingsActivity.this, havenUrl));
+            }
+        });
+        for (int i = 0; i < category.keywords.length; i++) {
+            final String keyword = category.keywords[i];
+            fetchers.add(new HitFetcher() {
+                @Override
+                public List<ImageSearch.Hit> fetch() {
+                    return ImageSearch.parseUpx8(BingClient.fetchText(DesktopSettingsActivity.this,
+                            "https://wp.upx8.com/api.php?format=json&content=" + encode(keyword)
+                                    + "&count=10&resolution=1920x1080"), 10);
+                }
+            });
+        }
+        streamHits(fetchers, recommendResults, recommendStatus, recommendGeneration, generation, 28);
     }
 
 
@@ -963,33 +981,6 @@ public class DesktopSettingsActivity extends Activity {
         }, "wallpaper-net-check").start();
     }
 
-    private List<ImageSearch.Hit> loadRecommends(WallpaperCategory category) {
-        String bingQuery = encode(category.bingQuery);
-        String bingHtml = BingClient.fetchText(this,
-                "https://cn.bing.com/images/async?q=" + bingQuery
-                        + "&first=0&count=35&mmasync=1&adlt=strict"
-                        + "&qft=%2Bfilterui:aspect-wide%2Bfilterui:imagesize-large");
-        StringBuilder haven = new StringBuilder("https://wallhaven.cc/api/v1/search?");
-        if (category.wallhavenQuery.length() > 0) {
-            haven.append("q=").append(encode(category.wallhavenQuery)).append('&');
-        }
-        if (category.wallhavenCategories.length() > 0) {
-            haven.append("categories=").append(category.wallhavenCategories).append('&');
-        }
-        haven.append("purity=100&atleast=1920x720&ratios=16x9,21x9&sorting=toplist&topRange=1M");
-        String havenJson = BingClient.fetchText(this, haven.toString());
-        List<List<ImageSearch.Hit>> groups = new ArrayList<List<ImageSearch.Hit>>();
-        groups.add(ImageSearch.parseBing(bingHtml));
-        groups.add(ImageSearch.parseWallhaven(havenJson));
-        for (int i = 0; i < category.keywords.length; i++) {
-            String upxJson = BingClient.fetchText(this,
-                    "https://wp.upx8.com/api.php?format=json&content="
-                            + encode(category.keywords[i]) + "&count=10&resolution=1920x1080");
-            groups.add(ImageSearch.parseUpx8(upxJson, 10));
-        }
-        return ImageSearch.mergeAll(groups, 28);
-    }
-
     private String encode(String text) {
         if (text == null || text.length() == 0) {
             return "";
@@ -1001,53 +992,154 @@ public class DesktopSettingsActivity extends Activity {
         }
     }
 
-    private void showHits(List<ImageSearch.Hit> hits, LinearLayout container, TextView statusView) {
-        container.removeAllViews();
-        boolean wide = container == recommendResults;
-        for (int i = 0; i < hits.size(); i++) {
-            final ImageSearch.Hit hit = hits.get(i);
-            final ImageView thumb = new ImageView(this);
-            int width = dp(wide ? 116 : 120);
-            int height = dp(wide ? 66 : 120);
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(width, height);
-            params.rightMargin = Math.round(8 * getResources().getDisplayMetrics().density);
-            thumb.setLayoutParams(params);
-            thumb.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            thumb.setBackgroundColor(0x33FFFFFF);
-            container.addView(thumb);
-            thumb.setOnClickListener(new View.OnClickListener() {
+    /** One remote site. Each runs on its own thread so the strip fills as data lands. */
+    private interface HitFetcher {
+        List<ImageSearch.Hit> fetch();
+    }
+
+    private void streamHits(final List<HitFetcher> fetchers, final LinearLayout container,
+            final TextView statusView, final AtomicInteger generationCounter,
+            final int generation, final int limit) {
+        final List<String> rendered = new ArrayList<String>();
+        final AtomicInteger pending = new AtomicInteger(fetchers.size());
+        for (int i = 0; i < fetchers.size(); i++) {
+            final HitFetcher fetcher = fetchers.get(i);
+            new Thread(new Runnable() {
                 @Override
-                public void onClick(View v) {
-                    useRemote(hit, statusView);
+                public void run() {
+                    List<ImageSearch.Hit> hits;
+                    try {
+                        hits = fetcher.fetch();
+                    } catch (Throwable broken) {
+                        hits = new ArrayList<ImageSearch.Hit>();
+                    }
+                    final List<ImageSearch.Hit> arrived = hits;
+                    main.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (generationCounter.get() != generation || isFinishing()) {
+                                return;
+                            }
+                            appendHits(arrived, container, statusView, rendered, limit);
+                            if (pending.decrementAndGet() == 0 && rendered.isEmpty()) {
+                                statusView.setText(container == recommendResults
+                                        ? R.string.recommend_empty : R.string.wallpaper_search_empty);
+                            }
+                        }
+                    });
                 }
-            });
-            String preview = ImageSearch.bingImage(hit.thumbUrl, 240, 240);
-            loadThumb(thumb, preview != null ? preview : hit.thumbUrl);
+            }, "wallpaper-fetch").start();
         }
     }
 
-    private void loadThumb(final ImageView view, final String url) {
-        new Thread(new Runnable() {
+    /** Appends only hits that are not on screen yet, so slow sites keep adding cells. */
+    private void appendHits(List<ImageSearch.Hit> hits, LinearLayout container, TextView statusView,
+            List<String> rendered, int limit) {
+        if (hits == null) {
+            return;
+        }
+        boolean added = false;
+        for (int i = 0; i < hits.size() && rendered.size() < limit; i++) {
+            ImageSearch.Hit hit = hits.get(i);
+            if (hit == null || hit.fullUrl == null || rendered.contains(hit.fullUrl)) {
+                continue;
+            }
+            rendered.add(hit.fullUrl);
+            addThumb(hit, container, statusView);
+            added = true;
+        }
+        if (added) {
+            statusView.setText("");
+        }
+    }
+
+    private void addThumb(final ImageSearch.Hit hit, LinearLayout container, final TextView statusView) {
+        boolean wide = container == recommendResults;
+        final ImageView thumb = new ImageView(this);
+        int width = dp(wide ? 116 : 120);
+        int height = dp(wide ? 66 : 120);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(width, height);
+        params.rightMargin = Math.round(8 * getResources().getDisplayMetrics().density);
+        thumb.setLayoutParams(params);
+        thumb.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        thumb.setBackgroundColor(0x33FFFFFF);
+        container.addView(thumb);
+        thumb.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void run() {
-                File file = new File(getCacheDir(), "thumb-" + Math.abs(url.hashCode()) + ".img");
-                if (!file.isFile() && !BingClient.download(DesktopSettingsActivity.this, url, file)) {
-                    return;
-                }
-                Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
-                if (bitmap == null) {
-                    file.delete();
-                    return;
-                }
-                final Bitmap shown = bitmap;
-                main.post(new Runnable() {
+            public void onClick(View v) {
+                useRemote(hit, statusView);
+            }
+        });
+        String preview = ImageSearch.bingImage(hit.thumbUrl, 240, 240);
+        loadThumb(thumb, preview != null ? preview : hit.thumbUrl);
+    }
+
+    /** A handful of downloads at a time; 28 parallel TLS handshakes starve the head unit. */
+    private static final int THUMB_SLOTS = 4;
+
+    private ExecutorService thumbPool;
+    private final Set<String> thumbInFlight = new HashSet<String>();
+
+    private ExecutorService thumbPool() {
+        if (thumbPool == null) {
+            thumbPool = Executors.newFixedThreadPool(THUMB_SLOTS);
+        }
+        return thumbPool;
+    }
+
+    private void loadThumb(final ImageView view, final String url) {
+        if (url == null || !thumbInFlight.add(url)) {
+            // 同一个缩略图已经在下载，等它落地后再补到这张新视图上。
+            if (url != null) {
+                main.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        view.setImageBitmap(shown);
+                        applyCachedThumb(view, url);
                     }
-                });
+                }, 2000);
             }
-        }).start();
+            return;
+        }
+        thumbPool().execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    File file = thumbFile(url);
+                    if (!file.isFile() && !BingClient.download(DesktopSettingsActivity.this, url, file)) {
+                        return;
+                    }
+                    Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+                    if (bitmap == null) {
+                        file.delete();
+                        return;
+                    }
+                    final Bitmap shown = bitmap;
+                    main.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            view.setImageBitmap(shown);
+                        }
+                    });
+                } finally {
+                    thumbInFlight.remove(url);
+                }
+            }
+        });
+    }
+
+    private void applyCachedThumb(ImageView view, String url) {
+        File file = thumbFile(url);
+        if (!file.isFile()) {
+            return;
+        }
+        Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+        if (bitmap != null) {
+            view.setImageBitmap(bitmap);
+        }
+    }
+
+    private File thumbFile(String url) {
+        return new File(getCacheDir(), "thumb-" + Math.abs(url.hashCode()) + ".img");
     }
 
     private void useRemote(final ImageSearch.Hit hit, final TextView statusView) {
