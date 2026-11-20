@@ -10,4 +10,5 @@ build/
 app/build/
 core/build/
 platform-stubs/build/
-.signing/
+.signing/*
+!.signing/platform.jks

@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK packages
+        run: |
+          sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools" >/dev/null
+          yes | sdkmanager --licenses >/dev/null || true
+
+      - name: Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Build (unit tests + car release + avd debug)
+        run: |
+          chmod +x gradlew
+          ./gradlew :core:test :app:assembleCarRelease :app:assembleAvdDebug --console=plain --stacktrace
+
+      - name: Collect artifacts
+        id: pkg
+        run: |
+          VER=$(grep -oP 'versionName\s+"\K[^"]+' app/build.gradle | head -1 | sed 's/\.release$//')
+          echo "ver=$VER" >> "$GITHUB_OUTPUT"
+          mkdir -p dist
+          cp app/build/outputs/apk/car/release/app-car-release.apk "dist/WTLauncher-car-platform-${VER}.apk"
+          cp app/build/outputs/apk/avd/debug/app-avd-debug.apk "dist/WTLauncher-avd-${VER}.apk"
+          ( cd dist && sha256sum *.apk > SHA256SUMS.txt )
+          ls -lh dist
+          echo "tag=v${VER}-b${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.pkg.outputs.tag }}
+          name: WT Launcher ${{ steps.pkg.outputs.ver }} (build ${{ github.run_number }})
+          body: |
+            由 CI 自动构建，`WTLauncher-car-platform-*.apk` 使用 i.MX6Q 平台证书（freescale，SHA-1 `3E:0C:AF:3D:79:9F:BA:EC:56:6F:AC:BE:1A:67:FB:25:0B:DE:FD:93`）签名，可直接覆盖车机系统桌面。
+
+            `WTLauncher-avd-*.apk` 为默认 debug 签名，仅供模拟器（`emulator-5554`）使用，不要装真机。
+
+            commit `${{ github.sha }}`
+          files: |
+            dist/*.apk
+            dist/SHA256SUMS.txt
+          fail_on_unmatched_files: true
+          generate_release_notes: true
