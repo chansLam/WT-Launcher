@@ -37,6 +37,7 @@ import com.android.launcherWT.core.WallpaperMode;
 import com.android.launcherWT.home.CarFilters;
 import com.android.launcherWT.home.DesktopEntries;
 import com.android.launcherWT.home.FavoriteCatalog;
+import com.android.launcherWT.home.IconTrimmer;
 import com.android.launcherWT.home.HomeBackground;
 import com.android.launcherWT.home.InstalledApps;
 import com.android.launcherWT.store.DesktopDb;
@@ -518,7 +519,7 @@ public class DesktopSettingsActivity extends Activity {
     private Drawable sampleIcon(int index) {
         try {
             int res = SAMPLE_ICONS[Math.abs(index) % SAMPLE_ICONS.length];
-            return getResources().getDrawable(res);
+            return IconTrimmer.preset(this, res);
         } catch (Exception ex) {
             return getResources().getDrawable(android.R.drawable.sym_def_app_icon);
         }
@@ -1349,7 +1350,7 @@ public class DesktopSettingsActivity extends Activity {
     @SuppressWarnings("deprecation")
     private Drawable iconOf(DesktopEntries.Item item) {
         if (item.iconRes != 0) {
-            return getResources().getDrawable(item.iconRes);
+            return IconTrimmer.preset(this, item.iconRes);
         }
         return installed.icon(new LaunchableApp(item.packageName, item.className, item.title));
     }

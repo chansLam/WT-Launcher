@@ -110,28 +110,95 @@ public final class FavoriteCatalog {
         return R.drawable.classic_bg;
     }
 
+    private static final String THEME_LOG = "/sdcard/launcherWT-theme.log";
+    private static final String[] THEME_SETTINGS = {
+            "wt_theme", "wt_theme_type", "wt_theme_mode", "incall_theme"
+    };
+
+    /** Last value pushed by IOnThemeChange, used while the getter still reads 0. */
+    private static volatile int listenerHint = 0;
+
+    public static void noteThemeHint(int type) {
+        if (type > 0 && type < 4) {
+            listenerHint = type;
+        }
+    }
+
     /**
      * Setting service theme: 1 classic, 2 sport, 3 simple.
      * A missing service stays on classic, which is the APK default.
      */
     public static int theme(Context context) {
+        return fromRaw(rawTheme(context));
+    }
+
+    static int fromRaw(int raw) {
+        if (raw == 2) {
+            return THEME_SPORT;
+        }
+        if (raw == 3) {
+            return THEME_SIMPLE;
+        }
+        return THEME_CLASSIC;
+    }
+
+    /**
+     * Stock getter first, then the wt_ settings mirror, then the value the
+     * change callback pushed. The head unit returns 0 until the service has
+     * bound, which is why the listener value is kept as a last resort.
+     */
+    public static int rawTheme(Context context) {
+        Throwable error = null;
+        int value = 0;
         try {
             Class<?> manager = Class.forName("com.incall.apps.service.setting.SettingServiceManager");
             Object instance = manager.getMethod("getInstance").invoke(null);
-            int value = ((Integer) manager.getMethod("getTheme").invoke(instance)).intValue();
+            value = ((Integer) manager.getMethod("getTheme").invoke(instance)).intValue();
             if (value == 0) {
                 value = ((Integer) manager.getMethod("getTheme", Context.class).invoke(instance, context)).intValue();
             }
-            if (value == 2) {
-                return THEME_SPORT;
-            }
-            if (value == 3) {
-                return THEME_SIMPLE;
-            }
-        } catch (Throwable ignored) {
-            return THEME_CLASSIC;
+        } catch (Throwable unavailable) {
+            error = unavailable;
         }
-        return THEME_CLASSIC;
+        if (value <= 0) {
+            value = systemTheme(context);
+        }
+        if (value <= 0) {
+            value = listenerHint;
+        }
+        writeThemeLog(value, error);
+        return value;
+    }
+
+    private static int systemTheme(Context context) {
+        for (int i = 0; i < THEME_SETTINGS.length; i++) {
+            try {
+                int value = android.provider.Settings.System.getInt(
+                        context.getContentResolver(), THEME_SETTINGS[i], 0);
+                if (value > 0 && value < 4) {
+                    return value;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return 0;
+    }
+
+    private static void writeThemeLog(int value, Throwable error) {
+        try {
+            java.io.File file = new java.io.File(THEME_LOG);
+            if (file.length() > 32768L) {
+                file.delete();
+            }
+            String when = new java.text.SimpleDateFormat("MM-dd HH:mm:ss")
+                    .format(new java.util.Date());
+            String line = when + " theme=" + value + " hint=" + listenerHint
+                    + " error=" + (error == null ? "none" : error.toString()) + '\n';
+            java.io.FileWriter writer = new java.io.FileWriter(file, true);
+            writer.write(line);
+            writer.close();
+        } catch (Throwable ignored) {
+        }
     }
 
     private static Entry entry(String packageName, String className, String titleZh, String titleEn,

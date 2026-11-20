@@ -283,7 +283,7 @@ public class OriginalHomeView extends FrameLayout {
     @SuppressWarnings("deprecation")
     private Drawable iconOf(DesktopEntries.Item item, InstalledApps installed) {
         if (item.iconRes != 0) {
-            return getResources().getDrawable(item.iconRes);
+            return IconTrimmer.preset(getContext(), item.iconRes);
         }
         return installed.icon(new LaunchableApp(item.packageName, item.className, item.title));
     }
@@ -863,6 +863,7 @@ public class OriginalHomeView extends FrameLayout {
             themeListener = new IOnThemeChange.Stub() {
                 @Override
                 public void onThemeChange(int type) {
+                    FavoriteCatalog.noteThemeHint(type);
                     post(new Runnable() {
                         @Override
                         public void run() {
