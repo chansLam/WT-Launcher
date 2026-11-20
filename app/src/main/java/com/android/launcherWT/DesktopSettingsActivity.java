@@ -108,6 +108,8 @@ public class DesktopSettingsActivity extends Activity {
     private final List<DesktopEntries.Item> desktopItems = new ArrayList<DesktopEntries.Item>();
     private final List<String> pendingOrder = new ArrayList<String>();
     private final Set<String> pendingHidden = new HashSet<String>();
+    /** 进入设置页时数据库里已经标记为隐藏的键，保存时用来做差集取消隐藏。 */
+    private final Set<String> storedHidden = new HashSet<String>();
     private int pendingColumns;
     private int pendingRows;
     private int pendingIconSize;
@@ -1113,11 +1115,13 @@ public class DesktopSettingsActivity extends Activity {
             pendingOrder.addAll(stored);
         }
         pendingHidden.clear();
+        storedHidden.clear();
         List<DesktopEntries.Item> source = DesktopEntries.source(this, FavoriteCatalog.theme(this),
                 pendingOrder);
         for (int i = 0; i < source.size(); i++) {
             if (database.isHidden(source.get(i).key)) {
                 pendingHidden.add(source.get(i).key);
+                storedHidden.add(source.get(i).key);
             }
         }
         rebuildItems();
@@ -1357,18 +1361,19 @@ public class DesktopSettingsActivity extends Activity {
         database.setDragMode(pendingDragMode);
         syncPendingOrder();
         database.setDisplayOrder(pendingOrder);
-        Set<String> hidden = new HashSet<String>(pendingHidden);
-        for (int i = 0; i < desktopItems.size(); i++) {
-            hidden.remove(desktopItems.get(i).key);
+        // 移除过的键落库为隐藏；之前在库里隐藏、这次又被加回桌面（或重新添加）的键取消隐藏。
+        for (String key : storedHidden) {
+            if (!pendingHidden.contains(key)) {
+                database.setHidden(key, false);
+            }
         }
         for (String key : pendingHidden) {
             database.setHidden(key, true);
         }
-        for (String key : hidden) {
-            database.setHidden(key, false);
-        }
         for (int i = 0; i < desktopItems.size(); i++) {
-            database.setHidden(desktopItems.get(i).key, false);
+            if (!pendingHidden.contains(desktopItems.get(i).key)) {
+                database.setHidden(desktopItems.get(i).key, false);
+            }
         }
         Toast.makeText(this, R.string.settings_saved, Toast.LENGTH_SHORT).show();
         Intent home = new Intent(this, MainActivity.class);
