@@ -15,6 +15,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - uses: actions/checkout@v4
 
@@ -24,13 +27,13 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install SDK packages
         run: |
-          sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools" >/dev/null
-          yes | sdkmanager --licenses >/dev/null || true
+          SDKM=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | head -1)
+          [ -z "$SDKM" ] && SDKM="$ANDROID_HOME/tools/bin/sdkmanager"
+          yes | "$SDKM" --licenses >/dev/null 2>&1 || true
+          "$SDKM" --install "platforms;android-34" "build-tools;34.0.0" "platform-tools" >/dev/null
+          echo "sdk ready: $ANDROID_HOME"
 
       - name: Gradle cache
         uses: actions/cache@v4
